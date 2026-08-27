@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    name: Build and publish release
+    name: Build Apollo Theme for Firefox
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,31 +20,40 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
-      - run: npm install
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-      - name: Lint
-        run: npm run lint
+      - run: npm ci
 
-      - name: Build package
-        run: npm run build
+      - name: Verify source and tests
+        run: |
+          npm run check
+          npm test
+          npm run lint
 
-      - name: Verify tag matches manifest version
+      - name: Verify tag matches package versions
         run: |
           TAG="${GITHUB_REF_NAME#v}"
           MANIFEST=$(node -p "require('./manifest.json').version")
-          echo "tag=$TAG manifest=$MANIFEST"
-          if [ "$TAG" != "$MANIFEST" ]; then
-            echo "::error::Tag v$TAG does not match manifest version $MANIFEST"
+          PACKAGE=$(node -p "require('./package.json').version")
+          echo "tag=$TAG manifest=$MANIFEST package=$PACKAGE"
+          if [ "$TAG" != "$MANIFEST" ] || [ "$TAG" != "$PACKAGE" ]; then
+            echo "::error::Tag v$TAG must match manifest ($MANIFEST) and package ($PACKAGE) versions"
             exit 1
           fi
+
+      - name: Build package
+        run: npm run build
 
       - name: Generate changelog (inline commit history)
         run: |
           TAG="${GITHUB_REF_NAME}"
           PREV=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)
           {
-            echo "## Humble Apollo ${TAG}"
+            echo "## Apollo Theme for Firefox ${TAG}"
             echo
             if [ -n "$PREV" ]; then
               echo "### Commits since ${PREV}"
@@ -61,13 +70,16 @@ jobs:
               echo "**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${PREV}...${TAG}"
             fi
           } > CHANGELOG_RELEASE.md
-          echo "----- release body -----"
+          printf '%s\n' "----- release body -----"
           cat CHANGELOG_RELEASE.md
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: web-ext-artifacts/*.zip
+          name: Apollo Theme for Firefox ${{ github.ref_name }}
+          files: web-ext-artifacts/firefox-apollo-theme.zip
           body_path: CHANGELOG_RELEASE.md
           draft: false
           prerelease: false
+          fail_on_unmatched_files: true
+          generate_release_notes: false

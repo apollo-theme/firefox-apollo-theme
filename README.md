@@ -1,101 +1,96 @@
-# Humble Apollo — Firefox Theme
+# Apollo Theme for Firefox
 
-[![CI](https://github.com/D0n9X1n/humble-apollo/actions/workflows/ci.yml/badge.svg)](https://github.com/D0n9X1n/humble-apollo/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/D0n9X1n/humble-apollo?sort=semver)](https://github.com/D0n9X1n/humble-apollo/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/D0n9X1n/humble-apollo/total?logo=github&label=downloads)](https://github.com/D0n9X1n/humble-apollo/releases)
-[![License: MIT](https://img.shields.io/github/license/D0n9X1n/humble-apollo)](LICENSE)
-[![Firefox](https://img.shields.io/badge/Firefox-theme-FF7139?logo=firefoxbrowser&logoColor=white)](https://addons.mozilla.org/firefox/)
+[![CI](https://github.com/apollo-theme/firefox-apollo-theme/actions/workflows/ci.yml/badge.svg)](https://github.com/apollo-theme/firefox-apollo-theme/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/apollo-theme/firefox-apollo-theme?sort=semver)](https://github.com/apollo-theme/firefox-apollo-theme/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/apollo-theme/firefox-apollo-theme)](LICENSE)
 [![Manifest V2](https://img.shields.io/badge/manifest-v2-blue)](manifest.json)
-[![Last commit](https://img.shields.io/github/last-commit/D0n9X1n/humble-apollo)](https://github.com/D0n9X1n/humble-apollo/commits/main)
 
-A high-contrast dark Firefox theme based on the
-[Gruvbox dark hard](https://github.com/morhetz/gruvbox) palette — the darkest Gruvbox background
-(`#1d2021`) with the warm cream foreground and the signature yellow accent.
+A static, high-contrast Firefox theme generated from Apollo's canonical SonicTerm-modified Gruvbox Dark Hard palette. It uses a near-black canvas, warm foregrounds, and a yellow focus accent.
 
-## Install / test locally
+## Local preview
 
-1. Open `about:debugging#/runtime/this-firefox` in Firefox.
-2. Click **Load Temporary Add-on…**
-3. Select `manifest.json` in this folder.
-
-The theme applies immediately and is removed when Firefox restarts. Use this for iterating on colors.
-
-## Package for distribution
-
-Uses [`web-ext`](https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/)
-via npm scripts (CI runs these on every push):
+Use Firefox Developer Edition for development. Either run:
 
 ```sh
-npm install
-npm run lint      # validate manifest against the theme schema
-npm run build     # produce web-ext-artifacts/humble_apollo-<version>.zip
+npm ci
+npm run dev
 ```
 
-## Releasing a new version
+`dev` targets an installed Firefox Developer Edition (`web-ext` alias `deved`) and uses a temporary profile. It opens an interactive browser, so it is not run in CI.
 
-Releases are **automated by tag**. Pushing a `v*` tag triggers
-[`.github/workflows/release.yml`](.github/workflows/release.yml), which lints, builds, and publishes
-a GitHub Release with auto-generated notes (every commit since the previous tag) and the packaged
-`.zip` attached.
+To load the theme into an already-open Developer Edition instead:
+
+1. Open `about:debugging#/runtime/this-firefox`.
+2. Select **Load Temporary Add-on…**.
+3. Choose `manifest.json` from this repository.
+
+Temporary add-ons disappear when Firefox restarts.
+
+## Develop and verify
+
+`manifest.json` is generated; do not edit it directly. Edit the role mapping in `scripts/common.py`, then regenerate and verify:
 
 ```sh
-# 1. Bump version in BOTH manifest.json and package.json (must match the tag), commit, push.
-# 2. Tag and push it — the tag must equal the manifest version, prefixed with "v":
-git tag v0.1.0
-git push origin v0.1.0
+python3 scripts/generate.py
+npm run check
+npm test
+npm run lint
+npm run build
 ```
 
-The release job **fails if the tag doesn't match `manifest.json`'s `version`**, so the two can't
-drift. Download the `.zip` from the published release, or grab it from the CI build artifacts.
+Run one focused test with:
 
-### Publishing to Firefox (AMO)
+```sh
+python3 -m unittest tests/test_theme.py -k test_gecko_identity_is_exact -v
+```
 
-Firefox only installs permanently-signed add-ons, and **[addons.mozilla.org](https://addons.mozilla.org)
-(AMO) is the signer**.
+`npm run build` writes `web-ext-artifacts/firefox-apollo-theme.zip`. The archive intentionally contains only `manifest.json`.
 
-1. Take the release `.zip` (or run `npm run build`).
-2. Submit it:
-   - **First release** — sign in at <https://addons.mozilla.org/developers/>, click *Submit a New
-     Add-on*, upload the zip, choose **listed** (public on AMO) or **unlisted** (self-distributed
-     `.xpi` you host), and fill in the listing (name, summary, screenshots, categories).
-   - **Update** — open the add-on → *Manage* → *Upload New Version* → upload the new zip.
-   - **CLI alternative** — generate API credentials at
-     <https://addons.mozilla.org/developers/addon/api/key/> and run:
-     ```sh
-     npx web-ext sign --channel listed \
-       --api-key "$AMO_JWT_ISSUER" --api-secret "$AMO_JWT_SECRET"
-     ```
-     `--channel listed` publishes on AMO; `--channel unlisted` returns a signed `.xpi` for
-     self-hosting.
-3. Listed submissions go through Mozilla review (themes are usually fast/automated). Once approved
-   it's live at `addons.mozilla.org/firefox/addon/humble-apollo/`.
+## Palette mapping
 
-> The `browser_specific_settings.gecko.id` in `manifest.json` (`humble-apollo@d0n9x1n`) is the
-> stable identity AMO ties every version to — don't change it between releases.
+The committed `palette/apollo.json` is an exact snapshot of the canonical palette. Its SHA-256 is pinned by the Python checks so both palette and generated-manifest drift fail deterministically.
 
-## Palette — Gruvbox dark hard
+| Firefox role | Apollo value |
+| --- | --- |
+| Canvas, inactive frame, new tab, recessed fields | `#141617` |
+| Toolbar, selected tab, popup, sidebar | `#1d2021` |
+| Primary text and icons | `#cfbc97` |
+| Selected/highlighted text | `#d5c4a1` |
+| Inactive tab text | `#928374` |
+| Focus, loading, attention | `#fabd2f` |
+| Selection and separators | `#3c3836` |
 
-Follows the original **Humble Gruvbox** colored components, with contrast raised by dropping the base
-to the **hard** Gruvbox background (`#1d2021`) and a pure-black URL bar (`#000000`) against the
-brightest cream text (`#fdf4c1`). The signature Gruvbox yellow (`#fabd2f`) is the single accent.
+`#665c54` is never used for normal or small text. Firefox Manifest V2 has no general danger, success, or information color roles, so those canonical status colors remain unmapped rather than being assigned to unrelated browser chrome.
 
-### Where each color goes
+## Install, sign, and uninstall
 
-| Preview | Role | Hex |
-| --- | --- | --- |
-| ![](https://placehold.co/40x20/1d2021/1d2021.png) | Frame / toolbar / sidebar / new tab | `#1d2021` |
-| ![](https://placehold.co/40x20/000000/000000.png) | URL / search bar | `#000000` |
-| ![](https://placehold.co/40x20/282828/282828.png) | Selected tab | `#282828` |
-| ![](https://placehold.co/40x20/3c3836/3c3836.png) | Popups | `#3c3836` |
-| ![](https://placehold.co/40x20/7c6f64/7c6f64.png) | Highlight background | `#7c6f64` |
-| ![](https://placehold.co/40x20/fdf4c1/fdf4c1.png) | Foreground text / icons | `#fdf4c1` |
-| ![](https://placehold.co/40x20/fabd2f/fabd2f.png) | Accent (yellow) — tab text, focus, attention | `#fabd2f` |
+Firefox requires a Mozilla-signed XPI for permanent installation. Build the ZIP, then upload it as a new version of the existing AMO listing, or sign with `web-ext` and AMO API credentials:
 
-### Full Gruvbox dark hard reference
+```sh
+npx web-ext sign --channel listed \
+  --api-key "$AMO_JWT_ISSUER" \
+  --api-secret "$AMO_JWT_SECRET"
+```
 
-| | | | |
-| --- | --- | --- | --- |
-| ![](https://placehold.co/40x20/1d2021/1d2021.png) `bg0_h #1d2021` | ![](https://placehold.co/40x20/282828/282828.png) `bg0 #282828` | ![](https://placehold.co/40x20/3c3836/3c3836.png) `bg1 #3c3836` | ![](https://placehold.co/40x20/504945/504945.png) `bg2 #504945` |
-| ![](https://placehold.co/40x20/665c54/665c54.png) `bg3 #665c54` | ![](https://placehold.co/40x20/7c6f64/7c6f64.png) `bg4 #7c6f64` | ![](https://placehold.co/40x20/a89984/a89984.png) `gray #a89984` | ![](https://placehold.co/40x20/ebdbb2/ebdbb2.png) `fg #ebdbb2` |
-| ![](https://placehold.co/40x20/cc241d/cc241d.png) `red #cc241d` | ![](https://placehold.co/40x20/98971a/98971a.png) `green #98971a` | ![](https://placehold.co/40x20/d79921/d79921.png) `yellow #d79921` | ![](https://placehold.co/40x20/458588/458588.png) `blue #458588` |
-| ![](https://placehold.co/40x20/b16286/b16286.png) `purple #b16286` | ![](https://placehold.co/40x20/689d6a/689d6a.png) `aqua #689d6a` | ![](https://placehold.co/40x20/fb4934/fb4934.png) `br-red #fb4934` | ![](https://placehold.co/40x20/fabd2f/fabd2f.png) `br-yellow #fabd2f` |
+`--channel listed` publishes to AMO; use `--channel unlisted` only for a signed, self-distributed XPI. Do not rename an unsigned ZIP to XPI and expect Firefox to accept it.
+
+To uninstall, open `about:addons`, select **Themes**, switch to another theme, then remove **Apollo Theme for Firefox**.
+
+## Visual check
+
+After temporary loading, inspect normal and private windows at regular and compact densities:
+
+- active and inactive tabs, loading indicator, separators, and selected-tab focus;
+- address bar unfocused, focused, typed selection, and autocomplete popup;
+- toolbar icons, attention state, bookmarks, sidebar, and new-tab page;
+- readable text in default, hover, selected, inactive, and high-contrast OS states.
+
+Automated checks validate schema, palette membership, restricted text colors, and WCAG contrast. A human visual pass is still required before release.
+
+## Release
+
+A `v*` tag runs `.github/workflows/release.yml`. The workflow uses `npm ci`, checks generated output and tests, lints, verifies the tag matches both `manifest.json` and `package.json`, builds, and attaches `firefox-apollo-theme.zip` to a GitHub Release.
+
+Before tagging, bump `package.json`, regenerate `manifest.json`, and commit both. External pushing, tagging, GitHub release creation, and AMO submission are deliberate maintainer actions.
+
+The Gecko ID remains **`humble-apollo@d0n9x1n`** for upgrade continuity with public version 0.1.2. It must never change. The existing AMO URL slug may continue to be `humble-apollo`; this repository does not claim that AMO changed it.

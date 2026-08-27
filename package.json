@@ -1,16 +1,19 @@
 {
-  "name": "humble-apollo",
-  "version": "0.1.2",
-  "description": "A high-contrast dark Firefox theme based on the Gruvbox dark hard palette.",
+  "name": "firefox-apollo-theme",
+  "version": "0.2.0",
+  "description": "A high-contrast Firefox theme generated from the canonical Apollo palette.",
   "private": true,
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/D0n9X1n/humble-apollo.git"
+    "url": "https://github.com/apollo-theme/firefox-apollo-theme"
   },
   "scripts": {
-    "lint": "web-ext lint --ignore-files package.json package-lock.json README.md CLAUDE.md LICENSE",
-    "build": "web-ext build --overwrite-dest --ignore-files package.json package-lock.json README.md CLAUDE.md LICENSE"
+    "dev": "web-ext run --source-dir . --firefox deved --start-url about:debugging#/runtime/this-firefox",
+    "lint": "web-ext lint --source-dir . --warnings-as-errors --ignore-files package.json package-lock.json README.md CLAUDE.md LICENSE palette scripts tests .github",
+    "build": "web-ext build --source-dir . --overwrite-dest --filename firefox-apollo-theme.zip --ignore-files package.json package-lock.json README.md CLAUDE.md LICENSE palette scripts tests .github",
+    "check": "python3 scripts/generate.py --check && python3 scripts/check.py",
+    "test": "python3 -m unittest discover -s tests -v"
   },
   "devDependencies": {
     "web-ext": "^8.3.0"

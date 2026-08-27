@@ -1,57 +1,56 @@
 {
   "manifest_version": 2,
-  "version": "0.1.2",
-  "name": "Humble Apollo",
-  "description": "A high-contrast dark Firefox theme based on the Gruvbox dark hard palette.",
+  "version": "0.2.0",
+  "name": "Apollo Theme for Firefox",
+  "description": "A high-contrast Firefox theme generated from the canonical Apollo palette.",
   "browser_specific_settings": {
     "gecko": {
       "id": "humble-apollo@d0n9x1n",
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": [
+          "none"
+        ]
       }
     }
   },
   "theme": {
     "colors": {
-      "frame": "#1d2021",
-      "frame_inactive": "#1d2021",
-
-      "tab_background_text": "#fdf4c1",
-      "tab_selected": "#282828",
-      "tab_text": "#fabd2f",
-      "tab_line": "#1d2021",
+      "frame": "#141617",
+      "frame_inactive": "#141617",
+      "tab_background_text": "#928374",
+      "tab_selected": "#1d2021",
+      "tab_text": "#cfbc97",
+      "tab_line": "#fabd2f",
       "tab_loading": "#fabd2f",
-      "tab_background_separator": "#000000",
-
+      "tab_background_separator": "#3c3836",
       "toolbar": "#1d2021",
-      "toolbar_text": "#fdf4c1",
-      "toolbar_field": "#000000",
-      "toolbar_field_text": "#fdf4c1",
-      "toolbar_field_focus": "#000000",
-      "toolbar_field_text_focus": "#fdf4c1",
+      "toolbar_text": "#cfbc97",
+      "toolbar_field": "#141617",
+      "toolbar_field_text": "#cfbc97",
+      "toolbar_field_focus": "#1d2021",
+      "toolbar_field_text_focus": "#d5c4a1",
       "toolbar_field_border_focus": "#fabd2f",
-      "toolbar_field_separator": "#000000",
-      "toolbar_vertical_separator": "#282828",
-
-      "icons": "#fdf4c1",
+      "toolbar_field_separator": "#3c3836",
+      "toolbar_vertical_separator": "#3c3836",
+      "toolbar_field_highlight": "#3c3836",
+      "toolbar_field_highlight_text": "#d5c4a1",
+      "button_background_hover": "#3c3836",
+      "button_background_active": "#665c54",
+      "icons": "#cfbc97",
       "icons_attention": "#fabd2f",
-
-      "ntp_background": "#1d2021",
-      "ntp_text": "#fdf4c1",
-
+      "ntp_background": "#141617",
+      "ntp_text": "#cfbc97",
       "popup": "#1d2021",
-      "popup_border": "#1d2021",
-      "popup_highlight": "#7c6f64",
-      "popup_highlight_text": "#fdf4c1",
-      "popup_text": "#fdf4c1",
-
+      "popup_border": "#3c3836",
+      "popup_highlight": "#3c3836",
+      "popup_highlight_text": "#d5c4a1",
+      "popup_text": "#cfbc97",
       "sidebar": "#1d2021",
       "sidebar_border": "#3c3836",
-      "sidebar_highlight": "#7c6f64",
-      "sidebar_highlight_text": "#fdf4c1",
-      "sidebar_text": "#fdf4c1",
-
-      "bookmark_text": "#fdf4c1"
+      "sidebar_highlight": "#3c3836",
+      "sidebar_highlight_text": "#d5c4a1",
+      "sidebar_text": "#cfbc97",
+      "bookmark_text": "#cfbc97"
     }
   }
 }
