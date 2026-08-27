@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import check as theme_check  # noqa: E402
 import common  # noqa: E402
 import generate  # noqa: E402
 
@@ -74,6 +75,24 @@ class ThemeTests(unittest.TestCase):
         for role in common.ACCENT_ROLES:
             with self.subTest(role=role):
                 self.assertEqual(accent, self.colors[role])
+
+    def test_validation_rejects_uncovered_text_role(self) -> None:
+        color_roles = common.COLOR_ROLES + (("new_text", "ansiBrightBlack"),)
+        errors = theme_check.validate_role_coverage(
+            color_roles,
+            common.TEXT_BACKGROUNDS,
+            common.ACCENT_ROLES,
+        )
+        self.assertIn("new_text has no declared text background", errors)
+
+    def test_validation_rejects_uncovered_accent_role(self) -> None:
+        color_roles = common.COLOR_ROLES + (("new_attention", "accent"),)
+        errors = theme_check.validate_role_coverage(
+            color_roles,
+            common.TEXT_BACKGROUNDS,
+            common.ACCENT_ROLES,
+        )
+        self.assertIn("new_attention maps accent but is not checked as an accent role", errors)
 
 
 if __name__ == "__main__":

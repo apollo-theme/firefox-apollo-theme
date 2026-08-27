@@ -11,6 +11,7 @@ from typing import Any
 import generate
 from common import (
     ACCENT_ROLES,
+    COLOR_ROLES,
     EXPECTED_PALETTE_SHA256,
     EXPECTED_SOURCE_SHA256,
     MANIFEST_PATH,
@@ -25,9 +26,37 @@ from common import (
 HEX_COLOR = re.compile(r"^#[0-9a-f]{6}$")
 
 
+def validate_role_coverage(
+    color_roles: tuple[tuple[str, str], ...],
+    text_backgrounds: dict[str, str],
+    accent_roles: tuple[str, ...],
+) -> list[str]:
+    """Require validation metadata for every mapped text and accent role."""
+    errors: list[str] = []
+    mappings = dict(color_roles)
+
+    for role in mappings:
+        if "text" in role.split("_") and role not in text_backgrounds:
+            errors.append(f"{role} has no declared text background")
+    for role, palette_role in color_roles:
+        if palette_role == "accent" and role not in accent_roles:
+            errors.append(f"{role} maps accent but is not checked as an accent role")
+
+    for text_role, background_role in text_backgrounds.items():
+        if text_role not in mappings:
+            errors.append(f"{text_role} declares a text background but is not generated")
+        if background_role not in mappings:
+            errors.append(f"{text_role} references unknown background {background_role}")
+    for role in accent_roles:
+        if mappings.get(role) != "accent":
+            errors.append(f"{role} is checked as accent but does not map accent")
+
+    return errors
+
+
 def validate() -> list[str]:
     """Return all deterministic validation failures."""
-    errors: list[str] = []
+    errors = validate_role_coverage(COLOR_ROLES, TEXT_BACKGROUNDS, ACCENT_ROLES)
     palette = load_palette()
     manifest = load_json(MANIFEST_PATH)
     colors: dict[str, str] = manifest["theme"]["colors"]
