@@ -54,7 +54,7 @@ For a canonical palette update, copy the canonical `palette/apollo.json` byte-fo
 
 ## Palette constraints
 
-This is Apollo's high-contrast SonicTerm-modified Gruvbox Dark Hard variant, not the unrelated 46-color Apollo palette.
+This project uses the canonical Apollo palette snapshot.
 
 - Canvas: `#141617`
 - Raised surface: `#1d2021`

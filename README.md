@@ -1,11 +1,32 @@
-# Firefox Apollo Theme
+<h1 align="center">Firefox Apollo Theme</h1>
 
-[![CI](https://github.com/apollo-theme/firefox-apollo-theme/actions/workflows/ci.yml/badge.svg)](https://github.com/apollo-theme/firefox-apollo-theme/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/apollo-theme/firefox-apollo-theme?sort=semver)](https://github.com/apollo-theme/firefox-apollo-theme/releases/latest)
-[![License: MIT](https://img.shields.io/github/license/apollo-theme/firefox-apollo-theme)](LICENSE)
-[![Manifest V2](https://img.shields.io/badge/manifest-v2-blue)](manifest.json)
+<p align="center">A static, high-contrast Firefox theme built with the canonical Apollo palette.</p>
 
-A static, high-contrast Firefox theme generated from Apollo's canonical SonicTerm-modified Gruvbox Dark Hard palette. It uses a near-black canvas, warm foregrounds, and a yellow focus accent.
+<p align="center">
+  <a href="https://apollo-theme.github.io/#app-firefox"><img alt="Preview" src="https://img.shields.io/badge/Preview-Website-d3869b?style=flat-square&amp;labelColor=141617"></a>
+  <a href="https://github.com/apollo-theme/firefox-apollo-theme/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/apollo-theme/firefox-apollo-theme/ci.yml?branch=main&amp;style=flat-square&amp;label=CI&amp;labelColor=141617"></a>
+  <a href="https://github.com/apollo-theme/firefox-apollo-theme/releases/latest"><img alt="Latest Release" src="https://img.shields.io/github/v/release/apollo-theme/firefox-apollo-theme?sort=semver&amp;style=flat-square&amp;label=Release&amp;labelColor=141617&amp;color=b8bb26"></a>
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-b8bb26?style=flat-square&amp;labelColor=141617"></a>
+  <a href="manifest.json"><img alt="Target Firefox" src="https://img.shields.io/badge/Target-Firefox-fb4934?style=flat-square&amp;labelColor=141617"></a>
+  <a href="palette/apollo.json"><img alt="Canonical palette" src="https://img.shields.io/badge/palette-canonical-fabd2f?style=flat-square&amp;labelColor=141617"></a>
+</p>
+
+<p align="center">
+  <a href="https://apollo-theme.github.io/#app-firefox"><img alt="Firefox Apollo Theme simulated preview" src="https://raw.githubusercontent.com/apollo-theme/apollo-theme.github.io/main/previews/firefox.svg" width="900"></a>
+</p>
+
+<p align="center"><em>Simulated preview — Firefox chrome can vary with browser and operating-system settings.</em></p>
+
+## Identity
+
+| | |
+| --- | --- |
+| Official display name | **Firefox Apollo Theme** |
+| Repository and package | `firefox-apollo-theme` |
+| Version | `1.0.0` |
+| Gecko GUID | `humble-apollo@d0n9x1n` |
+
+The Gecko GUID is an immutable compatibility identity. It preserves upgrade continuity with public version 0.1.2 even though the display name and repository name are different.
 
 ## Local preview
 
@@ -64,6 +85,8 @@ The committed `palette/apollo.json` is an exact snapshot of the canonical palett
 
 ## Install, sign, and uninstall
 
+The GitHub build and release artifact is an unsigned ZIP for source distribution and inspection. It is not a Mozilla-signed XPI and cannot be installed permanently in standard Firefox. Do not rename an unsigned ZIP to XPI and expect Firefox to accept it.
+
 Firefox requires a Mozilla-signed XPI for permanent installation. Build the ZIP, then upload it as a new version of the existing AMO listing, or sign with `web-ext` and AMO API credentials:
 
 ```sh
@@ -72,7 +95,7 @@ npx web-ext sign --channel listed \
   --api-secret "$AMO_JWT_SECRET"
 ```
 
-`--channel listed` publishes to AMO; use `--channel unlisted` only for a signed, self-distributed XPI. Do not rename an unsigned ZIP to XPI and expect Firefox to accept it.
+`--channel listed` publishes to AMO; use `--channel unlisted` only for a signed, self-distributed XPI. The latest GitHub Release does not imply that the same version has been published to AMO. This repository makes no claim that version 1.0.0 is available from the marketplace.
 
 To uninstall, open `about:addons`, select **Themes**, switch to another theme, then remove **Firefox Apollo Theme**.
 
