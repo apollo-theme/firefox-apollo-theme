@@ -42,14 +42,21 @@ class ThemeTests(unittest.TestCase):
 
     def test_gecko_identity_is_exact(self) -> None:
         self.assertEqual(2, self.manifest["manifest_version"])
-        self.assertEqual("Apollo Theme for Firefox", self.manifest["name"])
+        self.assertEqual("Firefox Apollo Theme", self.manifest["name"])
         gecko = self.manifest["browser_specific_settings"]["gecko"]
         self.assertEqual("humble-apollo@d0n9x1n", gecko["id"])
         self.assertEqual({"required": ["none"]}, gecko["data_collection_permissions"])
 
     def test_manifest_and_package_versions_agree(self) -> None:
-        self.assertEqual("0.2.0", self.manifest["version"])
+        self.assertEqual("1.0.0", self.manifest["version"])
         self.assertEqual(self.package["version"], self.manifest["version"])
+
+    def test_release_workflow_uses_app_first_name(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+        self.assertIn("Build Firefox Apollo Theme", workflow)
+        self.assertIn("## Firefox Apollo Theme ${TAG}", workflow)
+        self.assertIn("name: Firefox Apollo Theme ${{ github.ref_name }}", workflow)
+        self.assertNotIn("Apollo Theme for Firefox", workflow)
 
     def test_every_theme_color_comes_from_palette(self) -> None:
         palette_colors = set(self.palette["colors"].values())

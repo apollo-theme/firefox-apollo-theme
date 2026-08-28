@@ -1,4 +1,4 @@
-# Apollo Theme for Firefox
+# Firefox Apollo Theme
 
 [![CI](https://github.com/apollo-theme/firefox-apollo-theme/actions/workflows/ci.yml/badge.svg)](https://github.com/apollo-theme/firefox-apollo-theme/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/apollo-theme/firefox-apollo-theme?sort=semver)](https://github.com/apollo-theme/firefox-apollo-theme/releases/latest)
@@ -74,7 +74,7 @@ npx web-ext sign --channel listed \
 
 `--channel listed` publishes to AMO; use `--channel unlisted` only for a signed, self-distributed XPI. Do not rename an unsigned ZIP to XPI and expect Firefox to accept it.
 
-To uninstall, open `about:addons`, select **Themes**, switch to another theme, then remove **Apollo Theme for Firefox**.
+To uninstall, open `about:addons`, select **Themes**, switch to another theme, then remove **Firefox Apollo Theme**.
 
 ## Visual check
 

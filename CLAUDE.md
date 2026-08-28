@@ -2,7 +2,7 @@
 
 ## Project
 
-This repository contains **Apollo Theme for Firefox**, a static Firefox WebExtension theme using Manifest V2. There is no runtime JavaScript, background process, CSS, network access, or persistent state. Firefox renders browser chrome from `manifest.json`'s `theme.colors` object.
+This repository contains **Firefox Apollo Theme**, a static Firefox WebExtension theme using Manifest V2. There is no runtime JavaScript, background process, CSS, network access, or persistent state. Firefox renders browser chrome from `manifest.json`'s `theme.colors` object.
 
 `manifest.json` is deterministic generated output. The implementation is:
 
@@ -12,7 +12,7 @@ This repository contains **Apollo Theme for Firefox**, a static Firefox WebExten
 - `scripts/check.py`: validates the snapshot hash, palette membership, text contrast, restricted colors, accents, and generated output.
 - `tests/test_theme.py`: focused stdlib-only regression tests.
 
-The package and repository identity is `firefox-apollo-theme`; the display name is `Apollo Theme for Firefox`; the repository URL is `https://github.com/apollo-theme/firefox-apollo-theme`.
+The package and repository identity is `firefox-apollo-theme`; the display name is `Firefox Apollo Theme`; the repository URL is `https://github.com/apollo-theme/firefox-apollo-theme`.
 
 ## Immutable compatibility identity
 

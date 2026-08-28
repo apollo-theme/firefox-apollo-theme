@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
-  "version": "0.2.0",
-  "name": "Apollo Theme for Firefox",
+  "version": "1.0.0",
+  "name": "Firefox Apollo Theme",
   "description": "A high-contrast Firefox theme generated from the canonical Apollo palette.",
   "browser_specific_settings": {
     "gecko": {

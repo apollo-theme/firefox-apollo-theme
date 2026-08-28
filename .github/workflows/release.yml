@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    name: Build Apollo Theme for Firefox
+    name: Build Firefox Apollo Theme
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,7 +53,7 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           PREV=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)
           {
-            echo "## Apollo Theme for Firefox ${TAG}"
+            echo "## Firefox Apollo Theme ${TAG}"
             echo
             if [ -n "$PREV" ]; then
               echo "### Commits since ${PREV}"
@@ -76,7 +76,7 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Apollo Theme for Firefox ${{ github.ref_name }}
+          name: Firefox Apollo Theme ${{ github.ref_name }}
           files: web-ext-artifacts/firefox-apollo-theme.zip
           body_path: CHANGELOG_RELEASE.md
           draft: false

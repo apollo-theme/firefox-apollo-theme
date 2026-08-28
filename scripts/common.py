@@ -14,7 +14,7 @@ MANIFEST_PATH = ROOT / "manifest.json"
 EXPECTED_PALETTE_SHA256 = "550f8c36cf4ef6ac99551541d1fe9554f77d563fa1e7c129a6a82583321d61ef"
 EXPECTED_SOURCE_SHA256 = "0ed79939b82134b14ea3e339ebabee1f22ee5d12bb80915b0a407b5affb5f5ac"
 
-THEME_NAME = "Apollo Theme for Firefox"
+THEME_NAME = "Firefox Apollo Theme"
 DESCRIPTION = "A high-contrast Firefox theme generated from the canonical Apollo palette."
 GECKO_ID = "humble-apollo@d0n9x1n"
 

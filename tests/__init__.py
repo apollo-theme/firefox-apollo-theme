@@ -1,1 +1,1 @@
-"""Tests for Apollo Theme for Firefox."""
+"""Tests for Firefox Apollo Theme."""
