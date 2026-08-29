@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate manifest.json deterministically from the Apollo snapshot."""
+"""Generate both Firefox theme manifests deterministically from Apollo snapshots."""
 
 from __future__ import annotations
 
@@ -9,32 +9,34 @@ import sys
 from typing import Any
 
 from common import (
-    COLOR_ROLES,
-    DESCRIPTION,
-    GECKO_ID,
-    MANIFEST_PATH,
+    DARK_VARIANT,
     PACKAGE_PATH,
-    THEME_NAME,
+    ROOT,
+    VARIANTS,
+    VariantSpec,
     load_json,
     load_palette,
     resolve_palette_roles,
 )
 
 
-def build_manifest() -> dict[str, Any]:
-    """Build the complete static Manifest V2 theme object."""
+def build_manifest(variant: VariantSpec = DARK_VARIANT) -> dict[str, Any]:
+    """Build one complete static Manifest V2 theme object."""
     package = load_json(PACKAGE_PATH)
-    palette = load_palette()
+    palette = load_palette(variant)
     roles = resolve_palette_roles(palette)
-    colors = {firefox_role: roles[palette_role] for firefox_role, palette_role in COLOR_ROLES}
+    colors = {
+        firefox_role: roles[palette_role]
+        for firefox_role, palette_role in variant.color_roles
+    }
     return {
         "manifest_version": 2,
         "version": package["version"],
-        "name": THEME_NAME,
-        "description": DESCRIPTION,
+        "name": variant.theme_name,
+        "description": variant.description,
         "browser_specific_settings": {
             "gecko": {
-                "id": GECKO_ID,
+                "id": variant.gecko_id,
                 "data_collection_permissions": {"required": ["none"]},
             }
         },
@@ -47,16 +49,21 @@ def render_manifest(manifest: dict[str, Any]) -> str:
     return json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
 
 
-def check_manifest(expected: str) -> int:
-    """Return non-zero if the committed manifest differs from generated output."""
-    actual = MANIFEST_PATH.read_text(encoding="utf-8") if MANIFEST_PATH.exists() else ""
+def check_manifest(
+    expected: str,
+    variant: VariantSpec = DARK_VARIANT,
+) -> int:
+    """Return non-zero if one committed manifest differs from generated output."""
+    path = variant.manifest_path
+    actual = path.read_text(encoding="utf-8") if path.exists() else ""
+    relative = path.relative_to(ROOT)
     if actual != expected:
         print(
-            "manifest.json is out of date; run python3 scripts/generate.py",
+            f"{relative} is out of date; run python3 scripts/generate.py",
             file=sys.stderr,
         )
         return 1
-    print("manifest.json is up to date")
+    print(f"{relative} is up to date")
     return 0
 
 
@@ -65,15 +72,19 @@ def main() -> int:
     parser.add_argument(
         "--check",
         action="store_true",
-        help="verify manifest.json without writing it",
+        help="verify both manifests without writing them",
     )
     args = parser.parse_args()
-    rendered = render_manifest(build_manifest())
-    if args.check:
-        return check_manifest(rendered)
-    MANIFEST_PATH.write_text(rendered, encoding="utf-8", newline="\n")
-    print(f"wrote {MANIFEST_PATH.relative_to(MANIFEST_PATH.parent)}")
-    return 0
+    status = 0
+    for variant in VARIANTS:
+        rendered = render_manifest(build_manifest(variant))
+        if args.check:
+            status |= check_manifest(rendered, variant)
+            continue
+        variant.manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        variant.manifest_path.write_text(rendered, encoding="utf-8", newline="\n")
+        print(f"wrote {variant.manifest_path.relative_to(ROOT)}")
+    return status
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 {
   "name": "firefox-apollo-theme",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A high-contrast Firefox theme generated from the canonical Apollo palette.",
   "private": true,
   "license": "MIT",
@@ -9,9 +9,15 @@
     "url": "https://github.com/apollo-theme/firefox-apollo-theme"
   },
   "scripts": {
-    "dev": "web-ext run --source-dir . --firefox deved --start-url about:debugging#/runtime/this-firefox",
-    "lint": "web-ext lint --source-dir . --warnings-as-errors --ignore-files package.json package-lock.json README.md CLAUDE.md LICENSE palette scripts tests .github",
-    "build": "web-ext build --source-dir . --overwrite-dest --filename firefox-apollo-theme.zip --ignore-files package.json package-lock.json README.md CLAUDE.md LICENSE palette scripts tests .github",
+    "dev": "npm run dev:dark",
+    "dev:dark": "web-ext run --source-dir . --firefox deved --start-url about:debugging#/runtime/this-firefox --ignore-files package.json package-lock.json README.md CLAUDE.md LICENSE palette scripts tests variants .github",
+    "dev:light": "web-ext run --source-dir variants/light --firefox deved --start-url about:debugging#/runtime/this-firefox",
+    "lint": "npm run lint:dark && npm run lint:light",
+    "lint:dark": "web-ext lint --source-dir . --warnings-as-errors --ignore-files package.json package-lock.json README.md CLAUDE.md LICENSE palette scripts tests variants .github",
+    "lint:light": "web-ext lint --source-dir variants/light --warnings-as-errors",
+    "build": "npm run build:dark && npm run build:light",
+    "build:dark": "web-ext build --source-dir . --overwrite-dest --filename firefox-apollo-theme.zip --ignore-files package.json package-lock.json README.md CLAUDE.md LICENSE palette scripts tests variants .github",
+    "build:light": "web-ext build --source-dir variants/light --artifacts-dir web-ext-artifacts --overwrite-dest --filename firefox-apollo-light-theme.zip",
     "check": "python3 scripts/generate.py --check && python3 scripts/check.py",
     "test": "python3 -m unittest discover -s tests -v"
   },

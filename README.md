@@ -12,21 +12,22 @@
 </p>
 
 <p align="center">
-  <a href="https://apollo-theme.github.io/#app-firefox"><img alt="Firefox Apollo Theme simulated preview" src="https://raw.githubusercontent.com/apollo-theme/apollo-theme.github.io/main/previews/firefox.svg" width="900"></a>
+  <a href="https://apollo-theme.github.io/#app-firefox"><img alt="Firefox Apollo Theme simulated dark preview" src="https://raw.githubusercontent.com/apollo-theme/apollo-theme.github.io/main/previews/firefox.svg" width="900"></a>
+  <a href="https://apollo-theme.github.io/#app-firefox-light"><img alt="Firefox Apollo Light Theme simulated preview" src="https://raw.githubusercontent.com/apollo-theme/apollo-theme.github.io/main/previews/firefox-light.svg" width="900"></a>
 </p>
 
-<p align="center"><em>Simulated preview — Firefox chrome can vary with browser and operating-system settings.</em></p>
+<p align="center"><em>Simulated dark and light previews — Firefox chrome can vary with browser and operating-system settings.</em></p>
 
 ## Identity
 
-| | |
-| --- | --- |
-| Official display name | **Firefox Apollo Theme** |
-| Repository and package | `firefox-apollo-theme` |
-| Version | `1.0.0` |
-| Gecko GUID | `humble-apollo@d0n9x1n` |
+| | Dark | Light |
+| --- | --- | --- |
+| Official display name | **Firefox Apollo Theme** | **Firefox Apollo Light Theme** |
+| Source manifest | `manifest.json` | `variants/light/manifest.json` |
+| Version | `1.1.0` | `1.1.0` |
+| Gecko GUID | `humble-apollo@d0n9x1n` | `apollo-light@d0n9x1n` |
 
-The Gecko GUID is an immutable compatibility identity. It preserves upgrade continuity with public version 0.1.2 even though the display name and repository name are different.
+The package and repository remain `firefox-apollo-theme`. The dark Gecko GUID is an immutable compatibility identity that preserves upgrade continuity with public version 0.1.2. The light theme has a separate stable GUID because static Firefox themes cannot bundle two themes in one manifest.
 
 ## Local preview
 
@@ -34,29 +35,31 @@ Use Firefox Developer Edition for development. Either run:
 
 ```sh
 npm ci
-npm run dev
+npm run dev:dark
+npm run dev:light
 ```
 
-`dev` targets an installed Firefox Developer Edition (`web-ext` alias `deved`) and uses a temporary profile. It opens an interactive browser, so it is not run in CI.
+Each preview targets an installed Firefox Developer Edition (`web-ext` alias `deved`) and uses a temporary profile. These commands open an interactive browser, so they are not run in CI.
 
-To load the theme into an already-open Developer Edition instead:
+To load either theme into an already-open Developer Edition instead:
 
 1. Open `about:debugging#/runtime/this-firefox`.
 2. Select **Load Temporary Add-on…**.
-3. Choose `manifest.json` from this repository.
+3. Choose `manifest.json` for dark or `variants/light/manifest.json` for light.
 
 Temporary add-ons disappear when Firefox restarts.
 
 ## Develop and verify
 
-`manifest.json` is generated; do not edit it directly. Edit the role mapping in `scripts/common.py`, then regenerate and verify:
+Both manifests are generated; do not edit them directly. Edit the variant role mapping in `scripts/common.py`, then regenerate and verify:
 
 ```sh
 python3 scripts/generate.py
 npm run check
 npm test
 npm run lint
-npm run build
+npm run build:dark
+npm run build:light
 ```
 
 Run one focused test with:
@@ -65,11 +68,11 @@ Run one focused test with:
 python3 -m unittest tests/test_theme.py -k test_gecko_identity_is_exact -v
 ```
 
-`npm run build` writes `web-ext-artifacts/firefox-apollo-theme.zip`. The archive intentionally contains only `manifest.json`.
+The separate build commands write `web-ext-artifacts/firefox-apollo-theme.zip` and `web-ext-artifacts/firefox-apollo-light-theme.zip`; `npm run build` runs both. Each archive intentionally contains only its own `manifest.json`.
 
 ## Palette mapping
 
-The committed `palette/apollo.json` is an exact snapshot of the canonical palette. Its SHA-256 is pinned by the Python checks so both palette and generated-manifest drift fail deterministically.
+The committed `palette/apollo.json` and `palette/apollo-light.json` files are exact snapshots of the canonical dark and light palettes. Their SHA-256 values are pinned by the Python checks so palette and generated-manifest drift fail deterministically.
 
 | Firefox role | Apollo value |
 | --- | --- |
@@ -85,9 +88,9 @@ The committed `palette/apollo.json` is an exact snapshot of the canonical palett
 
 ## Install, sign, and uninstall
 
-The GitHub build and release artifact is an unsigned ZIP for source distribution and inspection. It is not a Mozilla-signed XPI and cannot be installed permanently in standard Firefox. Do not rename an unsigned ZIP to XPI and expect Firefox to accept it.
+The GitHub build and release artifacts are unsigned ZIPs for source distribution and inspection. They are not Mozilla-signed XPIs and cannot be installed permanently in standard Firefox. Do not rename an unsigned ZIP to XPI and expect Firefox to accept it.
 
-Firefox requires a Mozilla-signed XPI for permanent installation. Build the ZIP, then upload it as a new version of the existing AMO listing, or sign with `web-ext` and AMO API credentials:
+Firefox requires a separately Mozilla-signed XPI for each theme's permanent installation. The dark GUID belongs to its existing AMO listing; the light GUID is a separate identity and must not be uploaded as a version of the dark listing. Build the relevant ZIP, then submit or sign that theme with its matching AMO identity and API credentials:
 
 ```sh
 npx web-ext sign --channel listed \
@@ -95,7 +98,7 @@ npx web-ext sign --channel listed \
   --api-secret "$AMO_JWT_SECRET"
 ```
 
-`--channel listed` publishes to AMO; use `--channel unlisted` only for a signed, self-distributed XPI. The latest GitHub Release does not imply that the same version has been published to AMO. This repository makes no claim that version 1.0.0 is available from the marketplace.
+`--channel listed` publishes to AMO; use `--channel unlisted` only for a signed, self-distributed XPI. The latest GitHub Release does not imply that either variant has been published to AMO. This repository makes no claim that version 1.1.0 of either theme is available from the marketplace.
 
 To uninstall, open `about:addons`, select **Themes**, switch to another theme, then remove **Firefox Apollo Theme**.
 
@@ -112,8 +115,8 @@ Automated checks validate schema, palette membership, restricted text colors, an
 
 ## Release
 
-A `v*` tag runs `.github/workflows/release.yml`. The workflow uses `npm ci`, checks generated output and tests, lints, verifies the tag matches both `manifest.json` and `package.json`, builds, and attaches `firefox-apollo-theme.zip` to a GitHub Release.
+A `v*` tag runs `.github/workflows/release.yml`. The workflow uses `npm ci`, checks generated output and tests, lints both source roots, verifies the tag matches `package.json` and both manifests, builds, and attaches both ZIPs to a GitHub Release.
 
-Before tagging, bump `package.json`, regenerate `manifest.json`, and commit both. External pushing, tagging, GitHub release creation, and AMO submission are deliberate maintainer actions.
+Before tagging, bump `package.json`, regenerate both manifests, and commit them together. External pushing, tagging, GitHub release creation, signing, and AMO submission are deliberate maintainer actions.
 
 The Gecko ID remains **`humble-apollo@d0n9x1n`** for upgrade continuity with public version 0.1.2. It must never change. The existing AMO URL slug may continue to be `humble-apollo`; this repository does not claim that AMO changed it.

@@ -40,6 +40,16 @@ class ThemeTests(unittest.TestCase):
         expected = generate.render_manifest(generate.build_manifest())
         self.assertEqual(expected, self.manifest_path.read_text(encoding="utf-8"))
 
+    def test_light_manifest_matches_regenerated_output(self) -> None:
+        expected = generate.render_manifest(generate.build_manifest(common.LIGHT_VARIANT))
+        self.assertEqual(
+            expected,
+            common.LIGHT_VARIANT.manifest_path.read_text(encoding="utf-8"),
+        )
+
+    def test_light_variant_passes_semantic_validation(self) -> None:
+        self.assertEqual([], theme_check.validate_variant(common.LIGHT_VARIANT))
+
     def test_gecko_identity_is_exact(self) -> None:
         self.assertEqual(2, self.manifest["manifest_version"])
         self.assertEqual("Firefox Apollo Theme", self.manifest["name"])
@@ -47,16 +57,65 @@ class ThemeTests(unittest.TestCase):
         self.assertEqual("humble-apollo@d0n9x1n", gecko["id"])
         self.assertEqual({"required": ["none"]}, gecko["data_collection_permissions"])
 
+    def test_light_variant_generates_separate_identity_and_roles(self) -> None:
+        light = generate.build_manifest(common.LIGHT_VARIANT)
+        self.assertEqual(ROOT / "variants" / "light" / "manifest.json", common.LIGHT_VARIANT.manifest_path)
+        self.assertEqual("Firefox Apollo Light Theme", light["name"])
+        gecko = light["browser_specific_settings"]["gecko"]
+        self.assertEqual("apollo-light@d0n9x1n", gecko["id"])
+        self.assertEqual({"required": ["none"]}, gecko["data_collection_permissions"])
+        self.assertEqual("#f9f5d7", light["theme"]["colors"]["frame"])
+        self.assertEqual("#3c3836", light["theme"]["colors"]["toolbar_text"])
+        self.assertEqual("#8a5200", light["theme"]["colors"]["tab_line"])
+        self.assertEqual(
+            "#f2e5bc",
+            light["theme"]["colors"]["button_background_active"],
+        )
+
     def test_manifest_and_package_versions_agree(self) -> None:
-        self.assertEqual("1.0.0", self.manifest["version"])
-        self.assertEqual(self.package["version"], self.manifest["version"])
+        light_manifest = json.loads(
+            common.LIGHT_VARIANT.manifest_path.read_text(encoding="utf-8")
+        )
+        self.assertEqual("1.1.0", self.package["version"])
+        self.assertEqual(
+            {self.package["version"]},
+            {self.manifest["version"], light_manifest["version"]},
+        )
 
     def test_release_workflow_uses_app_first_name(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
-        self.assertIn("Build Firefox Apollo Theme", workflow)
-        self.assertIn("## Firefox Apollo Theme ${TAG}", workflow)
-        self.assertIn("name: Firefox Apollo Theme ${{ github.ref_name }}", workflow)
+        self.assertIn("Build Firefox Apollo Themes", workflow)
+        self.assertIn("## Firefox Apollo Themes ${TAG}", workflow)
+        self.assertIn("name: Firefox Apollo Themes ${{ github.ref_name }}", workflow)
         self.assertNotIn("Apollo Theme for Firefox", workflow)
+
+    def test_package_and_release_cover_both_static_themes(self) -> None:
+        scripts = self.package["scripts"]
+        lint_commands = " ".join(
+            command for name, command in scripts.items() if name.startswith("lint")
+        )
+        build_commands = " ".join(
+            command for name, command in scripts.items() if name.startswith("build")
+        )
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+        ci_workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        for manifest_path, archive_name in (
+            ("manifest.json", "firefox-apollo-theme.zip"),
+            ("variants/light/manifest.json", "firefox-apollo-light-theme.zip"),
+        ):
+            with self.subTest(manifest_path=manifest_path):
+                self.assertIn(archive_name, build_commands)
+                self.assertIn(manifest_path, workflow)
+                self.assertIn(archive_name, workflow)
+                self.assertIn(archive_name, ci_workflow)
+        self.assertIn("web-ext lint --source-dir . ", lint_commands)
+        self.assertIn("--ignore-files", lint_commands)
+        self.assertIn("variants", lint_commands)
+        self.assertIn("--source-dir variants/light", lint_commands)
+        self.assertIn("web-ext build --source-dir . ", build_commands)
+        self.assertIn("--source-dir variants/light", build_commands)
+        self.assertIn("LIGHT_MANIFEST", workflow)
+        self.assertIn('"$TAG" != "$LIGHT_MANIFEST"', workflow)
 
     def test_every_theme_color_comes_from_palette(self) -> None:
         palette_colors = set(self.palette["colors"].values())

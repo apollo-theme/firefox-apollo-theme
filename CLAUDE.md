@@ -2,23 +2,23 @@
 
 ## Project
 
-This repository contains **Firefox Apollo Theme**, a static Firefox WebExtension theme using Manifest V2. There is no runtime JavaScript, background process, CSS, network access, or persistent state. Firefox renders browser chrome from `manifest.json`'s `theme.colors` object.
+This repository contains **Firefox Apollo Theme** and **Firefox Apollo Light Theme**, two separately installable static Firefox WebExtension themes using Manifest V2. There is no runtime JavaScript, background process, CSS, network access, or persistent state. Firefox renders browser chrome from each manifest's `theme.colors` object; static Firefox themes cannot bundle two themes in one manifest.
 
-`manifest.json` is deterministic generated output. The implementation is:
+Both manifests are deterministic generated output. The implementation is:
 
-- `palette/apollo.json`: committed exact snapshot of the canonical Apollo palette.
-- `scripts/common.py`: Firefox role mapping, stable identity, palette hash, and contrast helpers.
-- `scripts/generate.py`: generates `manifest.json`; `--check` detects drift without writing.
-- `scripts/check.py`: validates the snapshot hash, palette membership, text contrast, restricted colors, accents, and generated output.
+- `palette/apollo.json` and `palette/apollo-light.json`: committed exact snapshots of the canonical dark and light palettes.
+- `scripts/common.py`: variant specs, Firefox role mappings, stable identities, palette hashes, and contrast helpers.
+- `scripts/generate.py`: generates `manifest.json` and `variants/light/manifest.json`; `--check` detects drift without writing.
+- `scripts/check.py`: validates both snapshot hashes, palette membership, text contrast, restricted colors, accents, and generated output.
 - `tests/test_theme.py`: focused stdlib-only regression tests.
 
-The package and repository identity is `firefox-apollo-theme`; the display name is `Firefox Apollo Theme`; the repository URL is `https://github.com/apollo-theme/firefox-apollo-theme`.
+The package and repository identity remains `firefox-apollo-theme` at `https://github.com/apollo-theme/firefox-apollo-theme`. The display names are `Firefox Apollo Theme` and `Firefox Apollo Light Theme`.
 
 ## Immutable compatibility identity
 
-Never change the Gecko ID **`humble-apollo@d0n9x1n`**. AMO associates it with the public 0.1.2 release, and changing it would break upgrade continuity. Repository name, display name, and AMO URL slug are independent. The existing AMO slug may remain `humble-apollo`; do not claim it changed without confirming it on AMO.
+Never change the dark Gecko ID **`humble-apollo@d0n9x1n`**. AMO associates it with the public 0.1.2 release, and changing it would break upgrade continuity. The light theme has separate stable Gecko ID **`apollo-light@d0n9x1n`**. Never substitute one identity for the other or upload light as a version of the dark AMO listing. Repository name, display names, and AMO URL slugs are independent. Do not claim marketplace availability without confirming it on AMO.
 
-Preserve `browser_specific_settings.gecko.data_collection_permissions.required = ["none"]` when changing generation.
+Preserve `browser_specific_settings.gecko.data_collection_permissions.required = ["none"]` in both manifests when changing generation.
 
 ## Commands
 
@@ -26,12 +26,13 @@ Run from the repository root:
 
 ```sh
 npm ci                                      # exact Node dependencies
-python3 scripts/generate.py                 # regenerate manifest.json
-npm run check                               # palette hash + generated drift + semantic checks
+python3 scripts/generate.py                 # regenerate both manifests
+npm run check                               # both palette hashes + drift + semantic checks
 npm test                                    # complete Python unittest suite
-npm run lint                                # strict web-ext manifest lint
-npm run build                               # web-ext-artifacts/firefox-apollo-theme.zip
-npm run dev                                 # interactive Firefox Developer Edition preview
+npm run lint                                # strict web-ext lint for both source roots
+npm run build                               # both ZIPs in web-ext-artifacts/
+npm run dev:dark                            # interactive dark preview
+npm run dev:light                           # interactive light preview
 ```
 
 Run one named test:
@@ -40,17 +41,17 @@ Run one named test:
 python3 -m unittest tests/test_theme.py -k test_gecko_identity_is_exact -v
 ```
 
-`npm run dev` uses the `deved` binary alias and a temporary profile. Do not run it in unattended automation because it launches an interactive browser.
+Both preview commands use the `deved` binary alias and a temporary profile. Do not run them in unattended automation because they launch an interactive browser.
 
 ## Change workflow
 
-1. Never hand-edit `manifest.json`.
-2. For Firefox role changes, edit `COLOR_ROLES`, text-background pairs, or accent roles in `scripts/common.py`.
+1. Never hand-edit either generated manifest.
+2. For Firefox role changes, edit the variant's `color_roles`, text-background pairs, or accent roles in `scripts/common.py`.
 3. Run `python3 scripts/generate.py`.
 4. Run `npm run check`, `npm test`, `npm run lint`, and `npm run build`.
 5. Inspect the temporary theme in Firefox Developer Edition before release.
 
-For a canonical palette update, copy the canonical `palette/apollo.json` byte-for-byte, compute its SHA-256, update `EXPECTED_PALETTE_SHA256` in `scripts/common.py`, regenerate, and rerun all checks. Do not weaken the hash or drift checks to accept an unexplained mismatch.
+For a canonical palette update, copy the corresponding `palette/apollo.json` or `palette/apollo-light.json` byte-for-byte, compute its SHA-256, update that variant spec's expected palette and source hashes in `scripts/common.py`, regenerate, and rerun all checks. Do not weaken the hash or drift checks to accept an unexplained mismatch.
 
 ## Palette constraints
 
@@ -70,6 +71,6 @@ Manifest V2 does not provide general error, warning, success, or information rol
 
 ## Packaging and release
 
-Package metadata and manifest version must match. The release workflow also requires a tag `v<version>` matching both values. ZIP and XPI artifacts are ignored and must not be committed. CI and release workflows use `npm ci` and the committed lockfile.
+Package metadata and both manifest versions must match. The release workflow also requires a tag `v<version>` matching all three values. `npm run build` creates separate dark and light ZIPs, each containing only its own manifest. ZIP and XPI artifacts are ignored and must not be committed. CI and release workflows use `npm ci` and the committed lockfile.
 
-Permanent Firefox installation requires Mozilla signing. Do not push, tag, create a release, transfer/rename GitHub resources, or publish to AMO unless the maintainer explicitly requests that external action.
+Permanent Firefox installation requires separate Mozilla signing for each identity. GitHub release ZIPs are unsigned and do not prove marketplace availability. Do not push, tag, create a release, transfer/rename GitHub resources, sign, or publish to AMO unless the maintainer explicitly requests that external action.

@@ -11,12 +11,11 @@ from typing import Any
 import generate
 from common import (
     ACCENT_ROLES,
-    COLOR_ROLES,
-    EXPECTED_PALETTE_SHA256,
-    EXPECTED_SOURCE_SHA256,
-    MANIFEST_PATH,
-    PALETTE_PATH,
+    DARK_VARIANT,
+    ROOT,
     TEXT_BACKGROUNDS,
+    VARIANTS,
+    VariantSpec,
     contrast_ratio,
     load_json,
     load_palette,
@@ -54,35 +53,47 @@ def validate_role_coverage(
     return errors
 
 
-def validate() -> list[str]:
-    """Return all deterministic validation failures."""
-    errors = validate_role_coverage(COLOR_ROLES, TEXT_BACKGROUNDS, ACCENT_ROLES)
-    palette = load_palette()
-    manifest = load_json(MANIFEST_PATH)
+def validate_variant(variant: VariantSpec = DARK_VARIANT) -> list[str]:
+    """Return deterministic validation failures for one theme variant."""
+    errors = validate_role_coverage(
+        variant.color_roles,
+        TEXT_BACKGROUNDS,
+        ACCENT_ROLES,
+    )
+    palette = load_palette(variant)
+    manifest = load_json(variant.manifest_path)
     colors: dict[str, str] = manifest["theme"]["colors"]
+    prefix = f"{variant.key}: "
 
-    digest = palette_sha256()
-    if digest != EXPECTED_PALETTE_SHA256:
+    digest = palette_sha256(variant)
+    if digest != variant.expected_palette_sha256:
         errors.append(
-            f"palette snapshot hash is {digest}, expected {EXPECTED_PALETTE_SHA256}"
+            f"{prefix}palette snapshot hash is {digest}, expected {variant.expected_palette_sha256}"
         )
     source_digest = palette["provenance"].get("sourceSha256")
-    if source_digest != EXPECTED_SOURCE_SHA256:
+    if source_digest != variant.expected_source_sha256:
         errors.append(
-            f"palette source hash is {source_digest}, expected {EXPECTED_SOURCE_SHA256}"
+            f"{prefix}palette source hash is {source_digest}, expected {variant.expected_source_sha256}"
         )
 
-    expected_manifest = generate.render_manifest(generate.build_manifest())
-    actual_manifest = MANIFEST_PATH.read_text(encoding="utf-8")
+    expected_manifest = generate.render_manifest(generate.build_manifest(variant))
+    actual_manifest = variant.manifest_path.read_text(encoding="utf-8")
     if actual_manifest != expected_manifest:
-        errors.append("manifest.json differs from deterministic generated output")
+        errors.append(
+            f"{prefix}{variant.manifest_path.relative_to(ROOT)} "
+            "differs from deterministic generated output"
+        )
 
     palette_colors = set(palette["colors"].values())
     for role, color in colors.items():
         if not HEX_COLOR.fullmatch(color):
-            errors.append(f"{role} is not a lowercase six-digit hex color: {color}")
+            errors.append(
+                f"{prefix}{role} is not a lowercase six-digit hex color: {color}"
+            )
         if color not in palette_colors:
-            errors.append(f"{role} uses a color outside the Apollo palette: {color}")
+            errors.append(
+                f"{prefix}{role} uses a color outside the Apollo palette: {color}"
+            )
 
     minimum = float(palette["constraints"]["minimumTextContrast"])
     restricted = set(palette["constraints"]["restrictedColors"])
@@ -92,17 +103,27 @@ def validate() -> list[str]:
         ratio = contrast_ratio(foreground, background)
         if ratio < minimum:
             errors.append(
-                f"{text_role} contrast on {background_role} is {ratio:.2f}, below {minimum:.2f}"
+                f"{prefix}{text_role} contrast on {background_role} is "
+                f"{ratio:.2f}, below {minimum:.2f}"
             )
         if foreground in restricted:
-            errors.append(f"{text_role} uses restricted text color {foreground}")
+            errors.append(
+                f"{prefix}{text_role} uses restricted text color {foreground}"
+            )
 
     accent = palette["colors"]["accent"]
     for role in ACCENT_ROLES:
         if colors[role] != accent:
-            errors.append(f"{role} must use accent {accent}, found {colors[role]}")
+            errors.append(
+                f"{prefix}{role} must use accent {accent}, found {colors[role]}"
+            )
 
     return errors
+
+
+def validate() -> list[str]:
+    """Return deterministic validation failures for every theme variant."""
+    return [error for variant in VARIANTS for error in validate_variant(variant)]
 
 
 def main() -> int:
@@ -115,8 +136,9 @@ def main() -> int:
         for error in errors:
             print(f"error: {error}", file=sys.stderr)
         return 1
-    print(f"valid: {PALETTE_PATH.relative_to(PALETTE_PATH.parents[1])}")
-    print("valid: manifest.json")
+    for variant in VARIANTS:
+        print(f"valid: {variant.palette_path.relative_to(ROOT)}")
+        print(f"valid: {variant.manifest_path.relative_to(ROOT)}")
     return 0
 
 

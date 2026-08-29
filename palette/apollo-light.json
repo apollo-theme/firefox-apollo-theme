@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "apollo-light",
+  "name": "Apollo Light",
+  "description": "An accessibility-hardened Gruvbox Light Hard theme with warm paper surfaces and dark semantic colors.",
+  "appearance": "light",
+  "colorSpace": "srgb",
+  "provenance": {
+    "base": "Gruvbox Light Hard",
+    "variant": "Apollo High Contrast Light",
+    "sourceRepository": "https://github.com/morhetz/gruvbox",
+    "sourcePath": "colors/gruvbox.vim",
+    "sourceCommit": "5d15b2765f59754d7ac263c88a0f6e3e58124951",
+    "sourceSha256": "55116926ba2b625837d9ae89349a5688d60d0b32acdbd8887e1c0d225f079c3d"
+  },
+  "colors": {
+    "background": "#f9f5d7",
+    "surface": "#fbf1c7",
+    "surfaceHover": "#f2e5bc",
+    "selection": "#ebdbb2",
+    "foreground": "#3c3836",
+    "foregroundSecondary": "#504945",
+    "foregroundInactive": "#665c54",
+    "foregroundBright": "#282828",
+    "accent": "#8a5200",
+    "danger": "#9d0006",
+    "success": "#6b6700",
+    "info": "#076678",
+    "magenta": "#8f3f71",
+    "cyan": "#356b4d",
+    "ansiBrightBlack": "#665c54"
+  },
+  "roles": {
+    "canvas": "{colors.background}",
+    "textPrimary": "{colors.foreground}",
+    "textSecondary": "{colors.foregroundSecondary}",
+    "textInactive": "{colors.foregroundInactive}",
+    "focus": "{colors.accent}",
+    "cursor": "{colors.accent}",
+    "cursorText": "{colors.background}",
+    "selection": "{colors.selection}",
+    "selectionText": "{colors.foreground}",
+    "error": "{colors.danger}",
+    "warning": "{colors.accent}",
+    "success": "{colors.success}",
+    "information": "{colors.info}",
+    "textOnFocus": "{colors.background}",
+    "textOnError": "{colors.background}",
+    "textOnSuccess": "{colors.background}",
+    "textOnInformation": "{colors.background}"
+  },
+  "terminal": {
+    "foreground": "#3c3836",
+    "background": "#f9f5d7",
+    "cursor": "#8a5200",
+    "cursorText": "#f9f5d7",
+    "selection": {
+      "color": "#ebdbb2",
+      "alpha": 1.0,
+      "foregroundMode": "preserve"
+    },
+    "ansi": [
+      "#3c3836",
+      "#9d0006",
+      "#6b6700",
+      "#8a5200",
+      "#076678",
+      "#8f3f71",
+      "#356b4d",
+      "#504945"
+    ],
+    "bright": [
+      "#665c54",
+      "#9d0006",
+      "#6b6700",
+      "#8a5200",
+      "#076678",
+      "#8f3f71",
+      "#356b4d",
+      "#282828"
+    ]
+  },
+  "constraints": {
+    "minimumTextContrast": 4.5,
+    "minimumLargeTextContrast": 3.0,
+    "restrictedColors": {}
+  }
+}

@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    name: Build Firefox Apollo Theme
+    name: Build Firefox Apollo Themes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,11 +37,12 @@ jobs:
       - name: Verify tag matches package versions
         run: |
           TAG="${GITHUB_REF_NAME#v}"
-          MANIFEST=$(node -p "require('./manifest.json').version")
+          DARK_MANIFEST=$(node -p "require('./manifest.json').version")
+          LIGHT_MANIFEST=$(node -p "require('./variants/light/manifest.json').version")
           PACKAGE=$(node -p "require('./package.json').version")
-          echo "tag=$TAG manifest=$MANIFEST package=$PACKAGE"
-          if [ "$TAG" != "$MANIFEST" ] || [ "$TAG" != "$PACKAGE" ]; then
-            echo "::error::Tag v$TAG must match manifest ($MANIFEST) and package ($PACKAGE) versions"
+          echo "tag=$TAG dark=$DARK_MANIFEST light=$LIGHT_MANIFEST package=$PACKAGE"
+          if [ "$TAG" != "$DARK_MANIFEST" ] || [ "$TAG" != "$LIGHT_MANIFEST" ] || [ "$TAG" != "$PACKAGE" ]; then
+            echo "::error::Tag v$TAG must match dark manifest ($DARK_MANIFEST), light manifest ($LIGHT_MANIFEST), and package ($PACKAGE) versions"
             exit 1
           fi
 
@@ -53,7 +54,7 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           PREV=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)
           {
-            echo "## Firefox Apollo Theme ${TAG}"
+            echo "## Firefox Apollo Themes ${TAG}"
             echo
             if [ -n "$PREV" ]; then
               echo "### Commits since ${PREV}"
@@ -76,8 +77,10 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Firefox Apollo Theme ${{ github.ref_name }}
-          files: web-ext-artifacts/firefox-apollo-theme.zip
+          name: Firefox Apollo Themes ${{ github.ref_name }}
+          files: |
+            web-ext-artifacts/firefox-apollo-theme.zip
+            web-ext-artifacts/firefox-apollo-light-theme.zip
           body_path: CHANGELOG_RELEASE.md
           draft: false
           prerelease: false

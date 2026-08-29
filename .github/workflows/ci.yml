@@ -38,6 +38,8 @@ jobs:
       - run: npm run build
       - uses: actions/upload-artifact@v4
         with:
-          name: firefox-apollo-theme
-          path: web-ext-artifacts/firefox-apollo-theme.zip
+          name: firefox-apollo-themes
+          path: |
+            web-ext-artifacts/firefox-apollo-theme.zip
+            web-ext-artifacts/firefox-apollo-light-theme.zip
           if-no-files-found: error
