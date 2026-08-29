@@ -1,4 +1,4 @@
-<h1 align="center">Firefox Apollo Theme</h1>
+<h1 align="center">Apollo Theme for Firefox</h1>
 
 <p align="center">A static, high-contrast Firefox theme built with the canonical Apollo palette.</p>
 
@@ -12,8 +12,8 @@
 </p>
 
 <p align="center">
-  <a href="https://apollo-theme.github.io/#app-firefox"><img alt="Firefox Apollo Theme simulated dark preview" src="https://raw.githubusercontent.com/apollo-theme/apollo-theme.github.io/main/previews/firefox.svg" width="900"></a>
-  <a href="https://apollo-theme.github.io/#app-firefox-light"><img alt="Firefox Apollo Light Theme simulated preview" src="https://raw.githubusercontent.com/apollo-theme/apollo-theme.github.io/main/previews/firefox-light.svg" width="900"></a>
+  <a href="https://apollo-theme.github.io/#app-firefox"><img alt="Apollo Theme simulated dark Firefox preview" src="https://raw.githubusercontent.com/apollo-theme/apollo-theme.github.io/main/previews/firefox.svg" width="900"></a>
+  <a href="https://apollo-theme.github.io/#app-firefox-light"><img alt="Apollo Light Theme simulated Firefox preview" src="https://raw.githubusercontent.com/apollo-theme/apollo-theme.github.io/main/previews/firefox-light.svg" width="900"></a>
 </p>
 
 <p align="center"><em>Simulated dark and light previews — Firefox chrome can vary with browser and operating-system settings.</em></p>
@@ -22,12 +22,12 @@
 
 | | Dark | Light |
 | --- | --- | --- |
-| Official display name | **Firefox Apollo Theme** | **Firefox Apollo Light Theme** |
+| Official display name | **Apollo Theme** | **Apollo Light Theme** |
 | Source manifest | `manifest.json` | `variants/light/manifest.json` |
 | Version | `1.1.1` | `1.1.1` |
 | Gecko GUID | `humble-apollo@d0n9x1n` | `apollo-light@d0n9x1n` |
 
-The package and repository remain `firefox-apollo-theme`. The dark Gecko GUID is an immutable compatibility identity that preserves upgrade continuity with public version 0.1.2. The light theme has a separate stable GUID because static Firefox themes cannot bundle two themes in one manifest.
+The npm package is `apollo-theme`; the repository remains `firefox-apollo-theme`. The dark Gecko GUID is an immutable compatibility identity that preserves upgrade continuity with public version 0.1.2. The light theme has a separate stable GUID because static Firefox themes cannot bundle two themes in one manifest.
 
 ## Local preview
 
@@ -68,7 +68,7 @@ Run one focused test with:
 python3 -m unittest tests/test_theme.py -k test_gecko_identity_is_exact -v
 ```
 
-The separate build commands write `web-ext-artifacts/firefox-apollo-theme.zip` and `web-ext-artifacts/firefox-apollo-light-theme.zip`; `npm run build` runs both. Each archive intentionally contains only its own `manifest.json`.
+The separate build commands write `web-ext-artifacts/apollo-theme.zip` and `web-ext-artifacts/apollo-light-theme.zip`; `npm run build` runs both. Each archive intentionally contains only its own `manifest.json`.
 
 ## Palette mapping
 
@@ -100,7 +100,7 @@ npx web-ext sign --channel listed \
 
 `--channel listed` publishes to AMO; use `--channel unlisted` only for a signed, self-distributed XPI. The latest GitHub Release does not imply that either variant has been published to AMO. This repository makes no claim that version 1.1.1 of either theme is available from the marketplace.
 
-To uninstall either variant, open `about:addons`, select **Themes**, switch to another theme, then remove **Firefox Apollo Theme** or **Firefox Apollo Light Theme**.
+To uninstall either variant, open `about:addons`, select **Themes**, switch to another theme, then remove **Apollo Theme** or **Apollo Light Theme**.
 
 ## Visual check
 

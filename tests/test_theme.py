@@ -52,15 +52,27 @@ class ThemeTests(unittest.TestCase):
 
     def test_gecko_identity_is_exact(self) -> None:
         self.assertEqual(2, self.manifest["manifest_version"])
-        self.assertEqual("Firefox Apollo Theme", self.manifest["name"])
+        self.assertEqual("Apollo Theme", self.manifest["name"])
         gecko = self.manifest["browser_specific_settings"]["gecko"]
         self.assertEqual("humble-apollo@d0n9x1n", gecko["id"])
         self.assertEqual({"required": ["none"]}, gecko["data_collection_permissions"])
 
+    def test_addon_names_exclude_mozilla_trademarks(self) -> None:
+        expected_names = {
+            common.DARK_VARIANT: "Apollo Theme",
+            common.LIGHT_VARIANT: "Apollo Light Theme",
+        }
+        for variant, expected_name in expected_names.items():
+            name = generate.build_manifest(variant)["name"]
+            with self.subTest(variant=variant.key):
+                self.assertEqual(expected_name, name)
+                self.assertNotIn("firefox", name.lower())
+                self.assertNotIn("mozilla", name.lower())
+
     def test_light_variant_generates_separate_identity_and_roles(self) -> None:
         light = generate.build_manifest(common.LIGHT_VARIANT)
         self.assertEqual(ROOT / "variants" / "light" / "manifest.json", common.LIGHT_VARIANT.manifest_path)
-        self.assertEqual("Firefox Apollo Light Theme", light["name"])
+        self.assertEqual("Apollo Light Theme", light["name"])
         gecko = light["browser_specific_settings"]["gecko"]
         self.assertEqual("apollo-light@d0n9x1n", gecko["id"])
         self.assertEqual({"required": ["none"]}, gecko["data_collection_permissions"])
@@ -87,23 +99,23 @@ class ThemeTests(unittest.TestCase):
         for required in (
             "previews/firefox.svg",
             "previews/firefox-light.svg",
-            "Firefox Apollo Theme",
-            "Firefox Apollo Light Theme",
-            "remove **Firefox Apollo Theme** or **Firefox Apollo Light Theme**",
+            "Apollo Theme",
+            "Apollo Light Theme",
+            "remove **Apollo Theme** or **Apollo Light Theme**",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, readme)
         self.assertNotIn("will appear", readme)
         self.assertNotIn("coming soon", readme.lower())
 
-    def test_release_workflow_uses_app_first_name(self) -> None:
+    def test_release_workflow_uses_target_qualified_name(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
-        self.assertIn("Build Firefox Apollo Themes", workflow)
-        self.assertIn("## Firefox Apollo Themes ${TAG}", workflow)
-        self.assertIn("name: Firefox Apollo Themes ${{ github.ref_name }}", workflow)
-        self.assertNotIn("Apollo Theme for Firefox", workflow)
+        self.assertIn("Build Apollo Themes for Firefox", workflow)
+        self.assertIn("## Apollo Themes for Firefox ${TAG}", workflow)
+        self.assertIn("name: Apollo Themes for Firefox ${{ github.ref_name }}", workflow)
 
     def test_package_and_release_cover_both_static_themes(self) -> None:
+        self.assertEqual("apollo-theme", self.package["name"])
         scripts = self.package["scripts"]
         lint_commands = " ".join(
             command for name, command in scripts.items() if name.startswith("lint")
@@ -114,8 +126,8 @@ class ThemeTests(unittest.TestCase):
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
         ci_workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
         for manifest_path, archive_name in (
-            ("manifest.json", "firefox-apollo-theme.zip"),
-            ("variants/light/manifest.json", "firefox-apollo-light-theme.zip"),
+            ("manifest.json", "apollo-theme.zip"),
+            ("variants/light/manifest.json", "apollo-light-theme.zip"),
         ):
             with self.subTest(manifest_path=manifest_path):
                 self.assertIn(archive_name, build_commands)
