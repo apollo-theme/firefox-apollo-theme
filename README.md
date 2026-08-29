@@ -1,4 +1,4 @@
-<h1 align="center">Apollo Theme for Firefox</h1>
+<h1 align="center">Firefox Apollo Theme</h1>
 
 <p align="center">A static, high-contrast Firefox theme built with the canonical Apollo palette.</p>
 
@@ -12,8 +12,8 @@
 </p>
 
 <p align="center">
-  <a href="https://apollo-theme.github.io/#app-firefox"><img alt="Apollo Theme simulated dark Firefox preview" src="https://raw.githubusercontent.com/apollo-theme/apollo-theme.github.io/main/previews/firefox.svg" width="900"></a>
-  <a href="https://apollo-theme.github.io/#app-firefox-light"><img alt="Apollo Light Theme simulated Firefox preview" src="https://raw.githubusercontent.com/apollo-theme/apollo-theme.github.io/main/previews/firefox-light.svg" width="900"></a>
+  <a href="https://apollo-theme.github.io/#app-firefox"><img alt="Apollo Theme for Firefox simulated preview (dark)" src="https://raw.githubusercontent.com/apollo-theme/apollo-theme.github.io/main/previews/firefox.svg" width="900"></a>
+  <a href="https://apollo-theme.github.io/#app-firefox-light"><img alt="Apollo Light Theme for Firefox simulated preview" src="https://raw.githubusercontent.com/apollo-theme/apollo-theme.github.io/main/previews/firefox-light.svg" width="900"></a>
 </p>
 
 <p align="center"><em>Simulated dark and light previews — Firefox chrome can vary with browser and operating-system settings.</em></p>
