@@ -76,11 +76,25 @@ class ThemeTests(unittest.TestCase):
         light_manifest = json.loads(
             common.LIGHT_VARIANT.manifest_path.read_text(encoding="utf-8")
         )
-        self.assertEqual("1.1.0", self.package["version"])
+        self.assertEqual("1.1.1", self.package["version"])
         self.assertEqual(
             {self.package["version"]},
             {self.manifest["version"], light_manifest["version"]},
         )
+
+    def test_readme_presents_both_variants_through_uninstall(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        for required in (
+            "previews/firefox.svg",
+            "previews/firefox-light.svg",
+            "Firefox Apollo Theme",
+            "Firefox Apollo Light Theme",
+            "remove **Firefox Apollo Theme** or **Firefox Apollo Light Theme**",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, readme)
+        self.assertNotIn("will appear", readme)
+        self.assertNotIn("coming soon", readme.lower())
 
     def test_release_workflow_uses_app_first_name(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")

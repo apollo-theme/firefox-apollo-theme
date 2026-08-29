@@ -24,7 +24,7 @@
 | --- | --- | --- |
 | Official display name | **Firefox Apollo Theme** | **Firefox Apollo Light Theme** |
 | Source manifest | `manifest.json` | `variants/light/manifest.json` |
-| Version | `1.1.0` | `1.1.0` |
+| Version | `1.1.1` | `1.1.1` |
 | Gecko GUID | `humble-apollo@d0n9x1n` | `apollo-light@d0n9x1n` |
 
 The package and repository remain `firefox-apollo-theme`. The dark Gecko GUID is an immutable compatibility identity that preserves upgrade continuity with public version 0.1.2. The light theme has a separate stable GUID because static Firefox themes cannot bundle two themes in one manifest.
@@ -98,9 +98,9 @@ npx web-ext sign --channel listed \
   --api-secret "$AMO_JWT_SECRET"
 ```
 
-`--channel listed` publishes to AMO; use `--channel unlisted` only for a signed, self-distributed XPI. The latest GitHub Release does not imply that either variant has been published to AMO. This repository makes no claim that version 1.1.0 of either theme is available from the marketplace.
+`--channel listed` publishes to AMO; use `--channel unlisted` only for a signed, self-distributed XPI. The latest GitHub Release does not imply that either variant has been published to AMO. This repository makes no claim that version 1.1.1 of either theme is available from the marketplace.
 
-To uninstall, open `about:addons`, select **Themes**, switch to another theme, then remove **Firefox Apollo Theme**.
+To uninstall either variant, open `about:addons`, select **Themes**, switch to another theme, then remove **Firefox Apollo Theme** or **Firefox Apollo Light Theme**.
 
 ## Visual check
 
