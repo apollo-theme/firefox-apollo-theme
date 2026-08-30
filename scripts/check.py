@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+from html.parser import HTMLParser
 from typing import Any
 
 import generate
@@ -23,6 +24,279 @@ from common import (
 )
 
 HEX_COLOR = re.compile(r"^#[0-9a-f]{6}$")
+FENCE_OPEN = re.compile(
+    r"^[ \t]{0,3}(?:(?:[-+*]|\d+[.)])[ \t]+)?(`{3,}|~{3,})([^\r\n]*)$"
+)
+BLOCKQUOTE_PREFIX = re.compile(r"^(?:[ \t]{0,3}> ?)+")
+INLINE_CODE = re.compile(r"(?<!\\)(`+)(.*?)(?<!\\)\1", re.DOTALL)
+MARKDOWN_IMAGE = re.compile(r"!\[[^\]]*\](?:\([^)]*\)|\[[^\]]*\])")
+MARKDOWN_SHORTCUT_IMAGE = re.compile(r"!\[([^\]\n]+)\]")
+MARKDOWN_LINK = re.compile(r"\[([^\]]+)\](?:\([^)]*\)|\[[^\]]*\])")
+MARKDOWN_SHORTCUT_LINK = re.compile(r"(?<!!)\[([^\]\n]+)\]")
+LINK_DEFINITION = re.compile(r"(?m)^[ \t]{0,3}\[[^\]]+\]:\s+\S+.*$")
+README_PATH = ROOT / "README.md"
+
+VISIBLE_VARIANT_NAMES = ("Apollo Dark", "Apollo Light")
+README_LINE_MARKERS = ("npm run dev:dark", "npm run dev:light")
+README_TOKEN_MARKERS = ("--source-dir .", "--source-dir variants/light")
+README_MARKERS = README_LINE_MARKERS + README_TOKEN_MARKERS
+DARK_IDENTITY_MAPPING = (
+    "Apollo Dark uses the official display name Apollo Theme and immutable Gecko GUID "
+    "humble-apollo@d0n9x1n."
+)
+LIGHT_IDENTITY_MAPPING = (
+    "Apollo Light uses the official display name Apollo Light Theme and Gecko GUID "
+    "apollo-light@d0n9x1n."
+)
+RELEASE_DISCLAIMER = (
+    "The latest GitHub Release does not imply that either variant has been published "
+    "to AMO."
+)
+MARKETPLACE_DISCLAIMER = (
+    "This repository makes no claim that version 1.1.1 of either theme is available "
+    "from the marketplace."
+)
+DARK_SIGNING_COMMAND = (
+    "npx web-ext sign --source-dir . --channel listed \\\n"
+    '  --api-key "$AMO_JWT_ISSUER" \\\n'
+    '  --api-secret "$AMO_JWT_SECRET" \\\n'
+    "  --ignore-files package.json package-lock.json README.md CLAUDE.md LICENSE "
+    "palette scripts tests variants .github"
+)
+LIGHT_SIGNING_COMMAND = (
+    "npx web-ext sign --source-dir variants/light --channel listed \\\n"
+    '  --api-key "$AMO_JWT_ISSUER" \\\n'
+    '  --api-secret "$AMO_JWT_SECRET"'
+)
+MARKETPLACE_AVAILABILITY_ADVERBS = (
+    "already",
+    "currently",
+    "generally",
+    "now",
+    "publicly",
+)
+POSITIVE_MARKETPLACE_CLAIM = re.compile(
+    r"\b(?:both\s+(?:themes|variants)|Apollo\s+(?:Dark|Light)(?:\s+Theme)?|"
+    r"Apollo(?:\s+Light)?\s+Theme)\s+(?:is|are)\s+"
+    rf"(?:(?:{'|'.join(MARKETPLACE_AVAILABILITY_ADVERBS)})\s+){{0,2}}"
+    r"available\s+(?:at|from|in|on|through)\s+(?:the\s+)?"
+    r"(?:Firefox\s+Add-ons\s+)?(?:marketplace|AMO)\b",
+    re.IGNORECASE,
+)
+NO_CLAIM_SCOPE = re.compile(
+    r"\bmakes\s+no\s+claim\s+that(?:\s+\S+){0,8}\s*$",
+    re.IGNORECASE,
+)
+
+
+class _VisibleHTMLParser(HTMLParser):
+    """Collect text rendered by non-hidden HTML elements."""
+
+    HIDDEN_ELEMENTS = {"code", "pre", "script", "style", "template"}
+    VOID_ELEMENTS = {
+        "area",
+        "base",
+        "br",
+        "col",
+        "embed",
+        "hr",
+        "img",
+        "input",
+        "link",
+        "meta",
+        "param",
+        "source",
+        "track",
+        "wbr",
+    }
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+        self.stack: list[tuple[str, bool]] = []
+        self.hidden_depth = 0
+
+    def handle_starttag(
+        self, tag: str, attrs: list[tuple[str, str | None]]
+    ) -> None:
+        tag = tag.lower()
+        attributes = {name.lower(): value for name, value in attrs}
+        style = (attributes.get("style") or "").replace(" ", "").lower()
+        hidden = bool(
+            self.hidden_depth
+            or tag in self.HIDDEN_ELEMENTS
+            or "hidden" in attributes
+            or (attributes.get("aria-hidden") or "").lower() == "true"
+            or "display:none" in style
+            or "visibility:hidden" in style
+        )
+        if tag not in self.VOID_ELEMENTS:
+            self.stack.append((tag, hidden))
+            if hidden:
+                self.hidden_depth += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.lower()
+        if not self.stack:
+            return
+        while self.stack:
+            open_tag, hidden = self.stack.pop()
+            if hidden:
+                self.hidden_depth -= 1
+            if open_tag == tag:
+                break
+
+    def handle_data(self, data: str) -> None:
+        if not self.hidden_depth:
+            self.parts.append(data)
+
+
+def _strip_blockquote_markers(markdown: str) -> str:
+    """Expose Markdown content inside standard blockquote prefixes."""
+    return "".join(
+        BLOCKQUOTE_PREFIX.sub("", line)
+        for line in markdown.splitlines(keepends=True)
+    )
+
+
+def _leading_indentation_columns(line: str) -> int:
+    """Return leading indentation using four-column Markdown tab stops."""
+    columns = 0
+    for character in line:
+        if character == " ":
+            columns += 1
+        elif character == "\t":
+            columns += 4 - columns % 4
+        else:
+            break
+    return columns
+
+
+def _strip_indented_code(markdown: str) -> str:
+    """Remove nonblank Markdown lines indented by at least four columns."""
+    visible_lines: list[str] = []
+    for line in markdown.splitlines(keepends=True):
+        content = line.rstrip("\r\n")
+        newline = line[len(content) :]
+        list_item = re.match(
+            r"^[ \t]{0,3}(?:[-+*]|\d{1,9}[.)])(?P<spacing>[ \t]+)(?P<body>.*)$",
+            content,
+        )
+        candidate = (
+            list_item.group("spacing")[1:] + list_item.group("body")
+            if list_item
+            else content
+        )
+        if candidate.strip() and _leading_indentation_columns(candidate) >= 4:
+            visible_lines.append(newline)
+        else:
+            visible_lines.append(line)
+    return "".join(visible_lines)
+
+
+def _strip_fenced_code(markdown: str) -> str:
+    """Remove Markdown fenced blocks, including longer matching closers."""
+    visible_lines: list[str] = []
+    fence_character: str | None = None
+    minimum_closer_length = 0
+
+    for line in markdown.splitlines(keepends=True):
+        logical_line = line.rstrip("\r\n")
+        if fence_character is None:
+            opener = FENCE_OPEN.fullmatch(logical_line)
+            if opener:
+                delimiter, info = opener.groups()
+                if delimiter[0] == "~" or "`" not in info:
+                    fence_character = delimiter[0]
+                    minimum_closer_length = len(delimiter)
+                    continue
+            visible_lines.append(line)
+            continue
+
+        closer = re.fullmatch(
+            rf"[ \t]{{0,3}}{re.escape(fence_character)}"
+            rf"{{{minimum_closer_length},}}[ \t]*",
+            logical_line,
+        )
+        if closer:
+            fence_character = None
+            minimum_closer_length = 0
+
+    return "".join(visible_lines)
+
+
+def visible_prose(markdown: str) -> str:
+    """Return normalized prose that a README reader can see outside code."""
+    prose = _strip_blockquote_markers(markdown)
+    prose = _strip_fenced_code(prose)
+    prose = _strip_indented_code(prose)
+    prose = INLINE_CODE.sub(" ", prose)
+    prose = prose.replace(r"\`", "`")
+    prose = MARKDOWN_IMAGE.sub(" ", prose)
+    prose = MARKDOWN_SHORTCUT_IMAGE.sub(" ", prose)
+    prose = LINK_DEFINITION.sub(" ", prose)
+    prose = MARKDOWN_LINK.sub(r"\1", prose)
+    prose = MARKDOWN_SHORTCUT_LINK.sub(r"\1", prose)
+    prose = re.sub(r"<!--.*?-->", " ", prose, flags=re.DOTALL)
+
+    parser = _VisibleHTMLParser()
+    parser.feed(prose)
+    text = " ".join(parser.parts)
+    text = re.sub(r"[*_~]", "", text)
+    text = re.sub(r"[#>|]", " ", text)
+    return " ".join(text.split())
+
+
+def _has_exact_visible_name(prose: str, name: str) -> bool:
+    pattern = rf"(?<![\w./-]){re.escape(name)}(?![\w./-]|\s+Theme\b)"
+    return re.search(pattern, prose) is not None
+
+
+def _has_exact_marker(markdown: str, marker: str) -> bool:
+    if marker in README_LINE_MARKERS:
+        pattern = rf"(?m)^[ \t]*{re.escape(marker)}[ \t]*$"
+    else:
+        pattern = rf"(?<![\w:./-]){re.escape(marker)}(?![\w:./-])"
+    return re.search(pattern, markdown) is not None
+
+
+def validate_readme_contract(markdown: str) -> list[str]:
+    """Return failures in the documented Dark and Light Firefox contract."""
+    errors: list[str] = []
+    prose = visible_prose(markdown)
+
+    for name in VISIBLE_VARIANT_NAMES:
+        if not _has_exact_visible_name(prose, name):
+            errors.append(f"README visible prose must name {name} exactly")
+    for marker in README_MARKERS:
+        if not _has_exact_marker(markdown, marker):
+            errors.append(f"README must contain exact marker: {marker}")
+    for mapping in (DARK_IDENTITY_MAPPING, LIGHT_IDENTITY_MAPPING):
+        if mapping not in prose:
+            errors.append(f"README visible prose must contain identity mapping: {mapping}")
+    for heading in ("### Apollo Dark signing", "### Apollo Light signing"):
+        if re.search(rf"(?m)^{re.escape(heading)}[ \t]*$", markdown) is None:
+            errors.append(f"README must contain signing heading: {heading}")
+    for label, command in (
+        ("Apollo Dark", DARK_SIGNING_COMMAND),
+        ("Apollo Light", LIGHT_SIGNING_COMMAND),
+    ):
+        if command not in markdown:
+            errors.append(f"README must contain complete {label} signing command")
+    for disclaimer in (RELEASE_DISCLAIMER, MARKETPLACE_DISCLAIMER):
+        if disclaimer not in prose:
+            errors.append(f"README visible prose must contain marketplace disclaimer: {disclaimer}")
+    for claim in POSITIVE_MARKETPLACE_CLAIM.finditer(prose):
+        sentence_start = max(
+            prose.rfind(".", 0, claim.start()),
+            prose.rfind("!", 0, claim.start()),
+            prose.rfind("?", 0, claim.start()),
+        )
+        if not NO_CLAIM_SCOPE.search(prose[sentence_start + 1 : claim.start()]):
+            errors.append("README must not claim marketplace availability")
+            break
+
+    return errors
 
 
 def validate_role_coverage(
@@ -122,8 +396,10 @@ def validate_variant(variant: VariantSpec = DARK_VARIANT) -> list[str]:
 
 
 def validate() -> list[str]:
-    """Return deterministic validation failures for every theme variant."""
-    return [error for variant in VARIANTS for error in validate_variant(variant)]
+    """Return deterministic failures for every theme variant and the README."""
+    errors = [error for variant in VARIANTS for error in validate_variant(variant)]
+    readme = README_PATH.read_text(encoding="utf-8")
+    return errors + validate_readme_contract(readme)
 
 
 def main() -> int:

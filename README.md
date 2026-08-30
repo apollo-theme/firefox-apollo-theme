@@ -27,7 +27,9 @@
 | Version | `1.1.1` | `1.1.1` |
 | Gecko GUID | `humble-apollo@d0n9x1n` | `apollo-light@d0n9x1n` |
 
-The npm package is `apollo-theme`; the repository remains `firefox-apollo-theme`. The dark Gecko GUID is an immutable compatibility identity that preserves upgrade continuity with public version 0.1.2. The light theme has a separate stable GUID because static Firefox themes cannot bundle two themes in one manifest.
+**Apollo Dark** uses the official display name **Apollo Theme** and immutable Gecko GUID **humble-apollo@d0n9x1n**. **Apollo Light** uses the official display name **Apollo Light Theme** and Gecko GUID **apollo-light@d0n9x1n**.
+
+The npm package is `apollo-theme`; the repository remains `firefox-apollo-theme`. The dark Gecko GUID preserves upgrade continuity with public version 0.1.2. The light theme has a separate stable GUID because static Firefox themes cannot bundle two themes in one manifest.
 
 ## Local preview
 
@@ -90,10 +92,21 @@ The committed `palette/apollo.json` and `palette/apollo-light.json` files are ex
 
 The GitHub build and release artifacts are unsigned ZIPs for source distribution and inspection. They are not Mozilla-signed XPIs and cannot be installed permanently in standard Firefox. Do not rename an unsigned ZIP to XPI and expect Firefox to accept it.
 
-Firefox requires a separately Mozilla-signed XPI for each theme's permanent installation. The dark GUID belongs to its existing AMO listing; the light GUID is a separate identity and must not be uploaded as a version of the dark listing. Build the relevant ZIP, then submit or sign that theme with its matching AMO identity and API credentials:
+Firefox requires a separately Mozilla-signed XPI for each theme's permanent installation. The dark GUID belongs to its existing AMO listing; the light GUID is a separate identity and must not be uploaded as a version of the dark listing. Build the relevant ZIP, then submit or sign that theme with its matching AMO identity and API credentials. The following commands document the separate source roots; do not run them without an intentional signing or publishing action.
+
+### Apollo Dark signing
 
 ```sh
-npx web-ext sign --channel listed \
+npx web-ext sign --source-dir . --channel listed \
+  --api-key "$AMO_JWT_ISSUER" \
+  --api-secret "$AMO_JWT_SECRET" \
+  --ignore-files package.json package-lock.json README.md CLAUDE.md LICENSE palette scripts tests variants .github
+```
+
+### Apollo Light signing
+
+```sh
+npx web-ext sign --source-dir variants/light --channel listed \
   --api-key "$AMO_JWT_ISSUER" \
   --api-secret "$AMO_JWT_SECRET"
 ```

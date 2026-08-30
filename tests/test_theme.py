@@ -16,6 +16,36 @@ import common  # noqa: E402
 import generate  # noqa: E402
 
 
+DARK_MAPPING = (
+    "**Apollo Dark** uses the official display name **Apollo Theme** and immutable "
+    "Gecko GUID **humble-apollo@d0n9x1n**."
+)
+LIGHT_MAPPING = (
+    "**Apollo Light** uses the official display name **Apollo Light Theme** and Gecko "
+    "GUID **apollo-light@d0n9x1n**."
+)
+RELEASE_DISCLAIMER = (
+    "The latest GitHub Release does not imply that either variant has been published "
+    "to AMO."
+)
+MARKETPLACE_DISCLAIMER = (
+    "This repository makes no claim that version 1.1.1 of either theme is available "
+    "from the marketplace."
+)
+DARK_SIGNING_COMMAND = (
+    "npx web-ext sign --source-dir . --channel listed \\\n"
+    '  --api-key "$AMO_JWT_ISSUER" \\\n'
+    '  --api-secret "$AMO_JWT_SECRET" \\\n'
+    "  --ignore-files package.json package-lock.json README.md CLAUDE.md LICENSE "
+    "palette scripts tests variants .github"
+)
+LIGHT_SIGNING_COMMAND = (
+    "npx web-ext sign --source-dir variants/light --channel listed \\\n"
+    '  --api-key "$AMO_JWT_ISSUER" \\\n'
+    '  --api-secret "$AMO_JWT_SECRET"'
+)
+
+
 class ThemeTests(unittest.TestCase):
     def setUp(self) -> None:
         self.palette_path = ROOT / "palette" / "apollo.json"
@@ -24,6 +54,7 @@ class ThemeTests(unittest.TestCase):
         self.palette = json.loads(self.palette_path.read_text(encoding="utf-8"))
         self.manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
         self.package = json.loads(self.package_path.read_text(encoding="utf-8"))
+        self.readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.colors = self.manifest["theme"]["colors"]
 
     def test_palette_snapshot_matches_pinned_hash(self) -> None:
@@ -94,19 +125,401 @@ class ThemeTests(unittest.TestCase):
             {self.manifest["version"], light_manifest["version"]},
         )
 
-    def test_readme_presents_both_variants_through_uninstall(self) -> None:
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    def test_visible_prose_counts_only_reader_visible_non_code_text(self) -> None:
+        markdown = """
+![Apollo Dark image decoy](Apollo-Dark.png)
+<a href="badge"><img alt="Apollo Light badge decoy"></a>
+<!-- Apollo Dark comment decoy -->
+<span hidden>Apollo Light hidden decoy</span>
+`Apollo Dark inline-code decoy`
+```text
+Apollo Light fenced-code decoy
+```
+[**Apollo Dark**](https://example.invalid/Apollo-Light.png)
+<a href="https://example.invalid">Apollo Light</a>
+"""
+        self.assertEqual("Apollo Dark Apollo Light", theme_check.visible_prose(markdown))
+
+    def test_visible_prose_excludes_raw_preformatted_code(self) -> None:
+        markdown = "<pre><strong>Apollo Dark</strong> and Apollo Light</pre>Visible tail"
+        self.assertEqual("Visible tail", theme_check.visible_prose(markdown))
+
+    def test_visible_prose_excludes_multi_backtick_inline_code(self) -> None:
+        markdown = "``Apollo Dark`` and ```Apollo Light```"
+        self.assertEqual("and", theme_check.visible_prose(markdown))
+
+    def test_visible_prose_preserves_escaped_backticks(self) -> None:
+        markdown = r"\`Apollo Dark\` and \`Apollo Light\`"
+        self.assertEqual(
+            "`Apollo Dark` and `Apollo Light`",
+            theme_check.visible_prose(markdown),
+        )
+
+    def test_visible_prose_hides_unclosed_html_comment_through_eof(self) -> None:
+        markdown = "Visible before\n<!-- Apollo Dark\nApollo Light"
+        self.assertEqual("Visible before", theme_check.visible_prose(markdown))
+
+    def test_visible_prose_strips_indented_fences_with_longer_closers(self) -> None:
+        markdown = """
+Visible before
+   ~~~text
+Apollo Dark
+   ```
+Apollo Light
+  ~~
+Apollo Dark
+  ~~~~
+Visible middle
+ ```python
+Apollo Light
+   ~~~~
+Apollo Dark
+  ``
+Apollo Light
+   ````
+Visible after
+"""
+        self.assertEqual(
+            "Visible before Visible middle Visible after",
+            theme_check.visible_prose(markdown),
+        )
+
+    def test_visible_prose_excludes_fences_nested_in_list_items(self) -> None:
+        markdown = """
+- Visible unordered before
+- ~~~text
+  Apollo Dark
+  ~~~~
+- Visible unordered after
+1. Visible ordered before
+2. ```text
+   Apollo Light
+   ````
+3. Visible ordered after
+"""
+        prose = theme_check.visible_prose(markdown)
+        for visible in (
+            "Visible unordered before",
+            "Visible unordered after",
+            "Visible ordered before",
+            "Visible ordered after",
+        ):
+            with self.subTest(visible=visible):
+                self.assertIn(visible, prose)
+        self.assertNotIn("Apollo Dark", prose)
+        self.assertNotIn("Apollo Light", prose)
+
+    def test_visible_prose_excludes_indented_code_nested_in_list_items(self) -> None:
+        markdown = """
+- Visible unordered before
+
+      Apollo Dark
+
+- Visible unordered after
+1. Visible ordered before
+
+       Apollo Light
+
+2. Visible ordered after
+"""
+        prose = theme_check.visible_prose(markdown)
+        for visible in (
+            "Visible unordered before",
+            "Visible unordered after",
+            "Visible ordered before",
+            "Visible ordered after",
+        ):
+            with self.subTest(visible=visible):
+                self.assertIn(visible, prose)
+        self.assertNotIn("Apollo Dark", prose)
+        self.assertNotIn("Apollo Light", prose)
+
+    def test_visible_prose_excludes_all_images_but_keeps_shortcut_links(self) -> None:
+        markdown = """
+![Apollo Dark](dark.png)
+![Apollo Light][light-preview]
+![Apollo Dark][]
+![Apollo Light]
+[Apollo Dark]
+[Apollo Light]
+
+[light-preview]: light.png
+[Apollo Dark]: dark-reference.png
+[Apollo Light]: light-reference.png
+"""
+        self.assertEqual(
+            "Apollo Dark Apollo Light",
+            theme_check.visible_prose(markdown),
+        )
+
+    def test_visible_prose_excludes_blockquoted_and_multiline_code(self) -> None:
+        markdown = (
+            "> Visible quote prose\n"
+            ">\n"
+            "> ```text\n"
+            "> Apollo Dark\n"
+            "> ```\n"
+            ">\n"
+            f"> {' ' * 4}Apollo Light\n"
+            ">\n"
+            "``Apollo Dark\nApollo Light``\n"
+            "Trailing text\n"
+        )
+        self.assertEqual(
+            "Visible quote prose Trailing text",
+            theme_check.visible_prose(markdown),
+        )
+
+    def test_visible_prose_excludes_tab_indented_blockquote_code(self) -> None:
+        markdown = (
+            ">     Apollo Dark\n"
+            ">\tApollo Light\n"
+            "> \tApollo Dark\n"
+            "Visible tail"
+        )
+        self.assertEqual("Visible tail", theme_check.visible_prose(markdown))
+
+    def test_visible_prose_excludes_mixed_space_tab_indented_code(self) -> None:
+        markdown = (
+            "Visible before\n"
+            " \tApollo Dark\n"
+            "   \tApollo Light\n"
+            "Visible middle\n"
+            "- Visible unordered before\n"
+            "\n"
+            "  \t  Apollo Dark\n"
+            "\n"
+            "- Visible unordered after\n"
+            "1. Visible ordered before\n"
+            "\n"
+            "   \t   Apollo Light\n"
+            "\n"
+            "2. Visible ordered after\n"
+            "Visible after\n"
+        )
+        prose = theme_check.visible_prose(markdown)
+        for visible in (
+            "Visible before",
+            "Visible middle",
+            "Visible unordered before",
+            "Visible unordered after",
+            "Visible ordered before",
+            "Visible ordered after",
+            "Visible after",
+        ):
+            with self.subTest(visible=visible):
+                self.assertIn(visible, prose)
+        self.assertNotIn("Apollo Dark", prose)
+        self.assertNotIn("Apollo Light", prose)
+
+    def test_readme_contract_ignores_names_only_in_quoted_or_multiline_code(
+        self,
+    ) -> None:
+        mutated = (
+            self.readme.replace("Apollo Dark", "Dark variant").replace(
+                "Apollo Light", "Light variant"
+            )
+            + "\n> ```text\n> Apollo Dark\n> ```\n"
+            + f"> {' ' * 4}Apollo Light\n"
+            + "``Apollo Dark\nApollo Light``\n"
+        )
+        errors = theme_check.validate_readme_contract(mutated)
+        for name in ("Apollo Dark", "Apollo Light"):
+            with self.subTest(name=name):
+                self.assertIn(
+                    f"README visible prose must name {name} exactly",
+                    errors,
+                )
+
+    def test_readme_contract_passes(self) -> None:
+        self.assertEqual([], theme_check.validate_readme_contract(self.readme))
+
+    def test_readme_contract_requires_each_visible_variant_name_independently(self) -> None:
+        mutations = {
+            "Apollo Dark": self.readme.replace("Apollo Dark", "Apollo Darker"),
+            "Apollo Light": self.readme.replace("Apollo Light", "Apollo Lighter"),
+        }
+        for name, mutated in mutations.items():
+            with self.subTest(name=name):
+                self.assertIn(
+                    f"README visible prose must name {name} exactly",
+                    theme_check.validate_readme_contract(mutated),
+                )
+
+    def test_readme_contract_ignores_non_prose_variant_name_decoys(self) -> None:
+        mutations = {
+            "Apollo Dark": self.readme.replace("Apollo Dark", "Dark variant")
+            + "\n![Apollo Dark](Apollo-Dark.png)\n<!-- Apollo Dark -->\n"
+            + "`Apollo Dark`\nApollo Dark.md\n",
+            "Apollo Light": self.readme.replace("Apollo Light", "Light variant")
+            + "\n<img alt=\"Apollo Light\" hidden>\n```text\nApollo Light\n```\n"
+            + "Apollo Light.png\n",
+        }
+        for name, mutated in mutations.items():
+            with self.subTest(name=name):
+                self.assertIn(
+                    f"README visible prose must name {name} exactly",
+                    theme_check.validate_readme_contract(mutated),
+                )
+
+    def test_readme_contract_requires_each_command_marker_independently(self) -> None:
+        mutations = {
+            "npm run dev:dark": self.readme.replace(
+                "npm run dev:dark", "npm run dev:darker"
+            ),
+            "npm run dev:light": self.readme.replace(
+                "npm run dev:light", "npm run dev:lighter"
+            ),
+            "--source-dir .": self.readme.replace("--source-dir .", "--source-dir ./"),
+            "--source-dir variants/light": self.readme.replace(
+                "--source-dir variants/light", "--source-dir variants/lighter"
+            ),
+        }
+        for marker, mutated in mutations.items():
+            with self.subTest(marker=marker):
+                self.assertIn(
+                    f"README must contain exact marker: {marker}",
+                    theme_check.validate_readme_contract(mutated),
+                )
+
+    def test_readme_contract_rejects_marker_prefix_and_suffix_decoys(self) -> None:
+        mutations = (
+            (
+                "npm run dev:dark",
+                "prefix npm run dev:dark",
+                "npm run dev:dark suffix",
+            ),
+            (
+                "npm run dev:light",
+                "prefix npm run dev:light",
+                "npm run dev:light suffix",
+            ),
+            (
+                "--source-dir .",
+                "x--source-dir .",
+                "--source-dir .x",
+            ),
+            (
+                "--source-dir variants/light",
+                "x--source-dir variants/light",
+                "--source-dir variants/lightx",
+            ),
+        )
+        for marker, invalid_prefix, invalid_suffix in mutations:
+            for boundary, replacement in (
+                ("prefix", invalid_prefix),
+                ("suffix", invalid_suffix),
+            ):
+                with self.subTest(marker=marker, boundary=boundary):
+                    mutated = self.readme.replace(marker, replacement)
+                    self.assertIn(
+                        f"README must contain exact marker: {marker}",
+                        theme_check.validate_readme_contract(mutated),
+                    )
+
+    def test_readme_contract_requires_identity_mappings(self) -> None:
+        mutations = {
+            "dark display name": self.readme.replace(DARK_MAPPING, ""),
+            "light display name": self.readme.replace(LIGHT_MAPPING, ""),
+            "dark GUID": self.readme.replace(
+                "**humble-apollo@d0n9x1n**", "**changed-dark@d0n9x1n**", 1
+            ),
+            "light GUID": self.readme.replace(
+                "**apollo-light@d0n9x1n**", "**changed-light@d0n9x1n**", 1
+            ),
+        }
+        for mapping, mutated in mutations.items():
+            with self.subTest(mapping=mapping):
+                self.assertTrue(theme_check.validate_readme_contract(mutated))
+
+    def test_readme_contract_requires_separate_complete_signing_examples(self) -> None:
+        mutations = {
+            "dark heading": self.readme.replace("### Apollo Dark signing", "### Signing"),
+            "light heading": self.readme.replace("### Apollo Light signing", "### Signing"),
+            "dark command": self.readme.replace(DARK_SIGNING_COMMAND, "npx web-ext sign"),
+            "light command": self.readme.replace(LIGHT_SIGNING_COMMAND, "npx web-ext sign"),
+        }
+        for example, mutated in mutations.items():
+            with self.subTest(example=example):
+                self.assertTrue(theme_check.validate_readme_contract(mutated))
+
+    def test_readme_contract_requires_exact_marketplace_disclaimers(self) -> None:
+        mutated = self.readme.replace(RELEASE_DISCLAIMER, "").replace(
+            MARKETPLACE_DISCLAIMER,
+            "Both themes are available from the marketplace.",
+        )
+        errors = theme_check.validate_readme_contract(mutated)
+        self.assertTrue(errors)
+        self.assertTrue(any("marketplace" in error.lower() or "AMO" in error for error in errors))
+
+    def test_readme_contract_rejects_positive_marketplace_availability_claims(self) -> None:
+        for claim in (
+            "Both themes are available from the marketplace.",
+            "Apollo Dark is available on AMO.",
+            "Apollo Light is now available in the Firefox Add-ons marketplace.",
+        ):
+            with self.subTest(claim=claim):
+                self.assertTrue(
+                    theme_check.validate_readme_contract(self.readme + "\n" + claim)
+                )
+
+    def test_readme_contract_rejects_adverbial_marketplace_availability_claims(
+        self,
+    ) -> None:
+        for claim in (
+            "Apollo Dark is currently available from AMO.",
+            "Apollo Light is already available on AMO.",
+            "Apollo Dark is publicly available through the marketplace.",
+            "Apollo Light is generally available in the Firefox Add-ons marketplace.",
+            "Both themes are currently available from the marketplace.",
+        ):
+            with self.subTest(claim=claim):
+                self.assertIn(
+                    "README must not claim marketplace availability",
+                    theme_check.validate_readme_contract(self.readme + "\n" + claim),
+                )
+
+    def test_readme_contract_rejects_marketplace_availability_at_claims(self) -> None:
+        for claim in (
+            "Apollo Dark is available at AMO.",
+            "Both themes are currently available at the marketplace.",
+        ):
+            with self.subTest(claim=claim):
+                self.assertIn(
+                    "README must not claim marketplace availability",
+                    theme_check.validate_readme_contract(self.readme + "\n" + claim),
+                )
+
+    def test_readme_contract_allows_negative_marketplace_disclaimers(self) -> None:
+        for disclaimer in (
+            "Apollo Dark is not available from AMO.",
+            "Apollo Light is not available at the marketplace.",
+            "This repository makes no claim that Apollo Light is available from the marketplace.",
+            "This repository makes no claim that Apollo Dark is currently available from AMO.",
+            "This repository makes no claim that Apollo Dark is available at AMO.",
+        ):
+            with self.subTest(disclaimer=disclaimer):
+                self.assertEqual(
+                    [],
+                    theme_check.validate_readme_contract(
+                        self.readme + "\n" + disclaimer
+                    ),
+                )
+
+    def test_readme_preserves_existing_release_and_uninstall_facts(self) -> None:
         for required in (
             "previews/firefox.svg",
             "previews/firefox-light.svg",
-            "Apollo Theme",
-            "Apollo Light Theme",
+            "unsigned ZIPs",
+            "not Mozilla-signed XPIs",
+            "version 1.1.1",
+            "Both manifests are generated",
             "remove **Apollo Theme** or **Apollo Light Theme**",
         ):
             with self.subTest(required=required):
-                self.assertIn(required, readme)
-        self.assertNotIn("will appear", readme)
-        self.assertNotIn("coming soon", readme.lower())
+                self.assertIn(required, self.readme)
+        self.assertNotIn("will appear", self.readme)
+        self.assertNotIn("coming soon", self.readme.lower())
 
     def test_release_workflow_uses_target_qualified_name(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
